@@ -104,6 +104,19 @@ Regular Driver. A permanent seat change mid-season updates the Regular Driver li
   - Grid penalties (e.g. engine changes) would change Qualifying scores, so the Prediction measures penalties, not pace.
   - Pit lane starters have grid `0` in the results source and would count as outside the Top 10.
 
+## Rejected
+
+- **Up to 3 changes to the Race Prediction after Qualifying**: seeing the Qualifying result before
+  predicting the Race is exactly what locking early is meant to prevent.
+- **Half points (×0.5) instead of 0 for a missing Prediction**: with no Prediction there is nothing
+  to halve, and copying the previous Round's Prediction goes against each track being different.
+- **Tie-break by earliest Prediction**: rewards speed, not accuracy, and is unclear over a whole
+  Season (which Prediction counts, and is it the first save or the last edit?).
+- **Scoring 20 / 10 / "10 minus difference"**: contradicts itself (the formula gives 9 for a
+  difference of 1, not 10) and does not say what a driver outside the Top 10 scores.
+- **Hiding Predictions until the Race starts**: only needed with changes after Qualifying, which
+  were rejected. Once a Session locks, there is nothing left to copy.
+
 ## Deferred
 
 - **Win Streak** bonus (Exact Hit on the same driver at the same position in consecutive Races).
