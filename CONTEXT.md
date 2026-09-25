@@ -54,7 +54,8 @@ The moment a Session stops accepting Predictions: the start of the qualifying th
 _Avoid_: Deadline, cutoff, close
 
 **Cancelled Session**:
-A Session that produced no official classification. Nobody scores for it.
+A Session that produced no Official Classification (for Qualifying: no Starting Grid).
+Nobody scores for it.
 
 ### Drivers
 
@@ -83,8 +84,14 @@ The final published order of a Session, as reported by the results source. Drive
 classified have no position.
 _Avoid_: Results, standings (for a single Session)
 
+**Starting Grid**:
+The order in which drivers line up for the Race, after grid penalties. Qualifying is scored
+against the Starting Grid, not against its own Official Classification. Drivers starting from
+the pit lane have no Starting Grid position.
+_Avoid_: Qualifying result, grid positions
+
 **Top 10**:
-Positions 1–10 of the Official Classification.
+Positions 1–10 of the Official Classification, or of the Starting Grid for Qualifying.
 
 **Position Difference**:
 The absolute gap between a Pick's position and that driver's position in the Top 10.

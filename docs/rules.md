@@ -32,6 +32,13 @@ One ruleset applies to every League. Rules are not configurable per League.
 Only drivers in the Top 10 of the Official Classification score. A driver who retired but is still
 classified in the Top 10 counts; unclassified, did-not-start and disqualified drivers score 0.
 
+For Qualifying, the Top 10 is taken from the **Starting Grid** instead (see ADR 0008):
+
+- Grid penalties count, and Qualifying points are only known once the Race results are published.
+- Pit lane starters have no grid position and score 0.
+- A grid slot left empty by a pit lane starter stays empty; nobody moves up. The Top 10 then has
+  fewer than ten drivers, and a Perfect Top 10 is impossible for that Session.
+
 Points for a Pick = **5 Base Points** + **Accuracy Bonus**:
 
 | Position Difference | Accuracy Bonus |
@@ -82,6 +89,8 @@ Regular Driver. A permanent seat change mid-season updates the Regular Driver li
 - Once the next Round starts, the Round is a Final Round and its scores no longer change.
 - Cancelled Session (no Official Classification): nobody scores. A Session with an Official
   Classification is scored normally, even if it was shortened.
+- If the Race is cancelled after Qualifying, there is no Starting Grid, so Qualifying is a
+  Cancelled Session too.
 
 ## Season Table
 
@@ -96,16 +105,12 @@ Regular Driver. A permanent seat change mid-season updates the Regular Driver li
 - A Player joins with the League's Join Code, typed in or opened as a link.
 - The League Admin (the creator) can regenerate the Join Code, which invalidates the old one, and can remove Members.
 
-## Open questions
-
-- **Qualifying result: Official Classification or starting grid?** Currently leaning towards the
-  starting grid, but not decided. Trade-offs:
-  - Starting grid is only published with the Race results, so Qualifying points would appear on Sunday.
-  - Grid penalties (e.g. engine changes) would change Qualifying scores, so the Prediction measures penalties, not pace.
-  - Pit lane starters have grid `0` in the results source and would count as outside the Top 10.
-
 ## Rejected
 
+- **Scoring Qualifying against its Official Classification**: the Starting Grid is what the League
+  actually cares about, and waiting for grid penalties to land adds drama to the weekend.
+- **Closing up empty grid slots so the Qualifying Top 10 always has ten drivers**: it would score
+  against an order that nobody actually started from.
 - **Up to 3 changes to the Race Prediction after Qualifying**: seeing the Qualifying result before
   predicting the Race is exactly what locking early is meant to prevent.
 - **Half points (×0.5) instead of 0 for a missing Prediction**: with no Prediction there is nothing
