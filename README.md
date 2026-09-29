@@ -28,5 +28,5 @@ npm test           # Vitest, single run
 
 ## Deployment
 
-The app is deployed to Vercel: `main` goes to production, and every pull request gets a
+The app is deployed to Vercel at https://f1-predictor-omega.vercel.app/: `main` goes to production, and every pull request gets a
 preview deploy.
