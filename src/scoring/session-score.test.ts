@@ -45,40 +45,18 @@ describe("scoreSession", () => {
     expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 5, exactHits: 0 });
   });
 
-  it("scores 19 for a Pick one position off", () => {
-    const prediction = predictionWith({ 2: "HAM" });
+  // The rest of the Accuracy Bonus table. A difference of 2 is the P2→P4 example above.
+  it.each([
+    { driver: "HAM", difference: 1, points: 19 },
+    { driver: "HAD", difference: 3, points: 12 },
+    { driver: "PIA", difference: 4, points: 10 },
+    { driver: "LAW", difference: 5, points: 8 },
+    { driver: "ALO", difference: 6, points: 7 },
+    { driver: "NOR", difference: 7, points: 6 },
+  ])("scores $points for a Pick at P2 off by $difference ($driver)", ({ driver, points }) => {
+    const prediction = predictionWith({ 2: driver });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 19, exactHits: 0 });
-  });
-
-  it("scores 12 for a Pick three positions off", () => {
-    const prediction = predictionWith({ 2: "HAD" });
-
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 12, exactHits: 0 });
-  });
-
-  it("scores 10 for a Pick four positions off", () => {
-    const prediction = predictionWith({ 2: "PIA" });
-
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 10, exactHits: 0 });
-  });
-
-  it("scores 8 for a Pick five positions off", () => {
-    const prediction = predictionWith({ 2: "LAW" });
-
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 8, exactHits: 0 });
-  });
-
-  it("scores 7 for a Pick six positions off", () => {
-    const prediction = predictionWith({ 2: "ALO" });
-
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 7, exactHits: 0 });
-  });
-
-  it("scores 6 for a Pick seven positions off", () => {
-    const prediction = predictionWith({ 2: "NOR" });
-
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 6, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points, exactHits: 0 });
   });
 
   it("scores 0 for a Pick whose driver finishes outside the Top 10 (P14 or DNF)", () => {
