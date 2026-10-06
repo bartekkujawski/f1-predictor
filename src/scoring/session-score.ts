@@ -20,6 +20,7 @@ const ACCURACY_BONUS: Record<number, number> = {
   3: 7,
   4: 5,
   5: 3,
+  6: 2,
 };
 
 export function scoreSession(
