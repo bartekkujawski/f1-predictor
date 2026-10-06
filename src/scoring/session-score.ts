@@ -2,7 +2,8 @@ export type SessionKind = "Sprint" | "Qualifying" | "Race";
 
 export type RegularDriverId = string;
 
-// Position (1–10) → Regular Driver. A missing key is an empty slot (ADR-0008).
+// Position → Regular Driver, from the Official Classification or, for Qualifying, the Starting Grid.
+// A missing key is an empty slot (ADR-0008). Positions beyond 10 may be passed and score 0.
 export type Top10 = ReadonlyMap<number, RegularDriverId>;
 
 // Ten Regular Drivers in predicted order; index 0 is P1.
@@ -42,10 +43,10 @@ export function scoreSession(
 
   prediction?.forEach((driver, index) => {
     const pickPosition = index + 1;
-    const finishPosition = positionInTop10(top10, driver);
-    if (finishPosition === undefined) return;
+    const top10Position = positionInTop10(top10, driver);
+    if (top10Position === undefined) return;
 
-    const positionDifference = Math.abs(pickPosition - finishPosition);
+    const positionDifference = Math.abs(pickPosition - top10Position);
     sessionScore += BASE_POINTS + (ACCURACY_BONUS[positionDifference] ?? 0);
     if (positionDifference === 0) exactHits += 1;
   });
