@@ -24,6 +24,8 @@ const ACCURACY_BONUS: Record<number, number> = {
   7: 1,
 };
 
+const PERFECT_TOP_10_BONUS = 50;
+
 const SESSION_MULTIPLIER: Record<SessionKind, number> = {
   Sprint: 1,
   Qualifying: 2,
@@ -47,6 +49,8 @@ export function scoreSession(
     sessionScore += BASE_POINTS + (ACCURACY_BONUS[positionDifference] ?? 0);
     if (positionDifference === 0) exactHits += 1;
   });
+
+  if (exactHits === 10) sessionScore += PERFECT_TOP_10_BONUS;
 
   return { sessionScore: sessionScore * SESSION_MULTIPLIER[kind], exactHits };
 }

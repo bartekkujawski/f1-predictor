@@ -92,4 +92,10 @@ describe("scoreSession", () => {
 
     expect(scoreSession("Qualifying", top10, prediction)).toEqual({ sessionScore: 50, exactHits: 1 });
   });
+
+  it("adds 50 for a Perfect Top 10 before the multiplier, for a max Race score of 900", () => {
+    const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
+
+    expect(scoreSession("Race", top10, perfectPrediction)).toEqual({ sessionScore: 900, exactHits: 10 });
+  });
 });
