@@ -14,9 +14,25 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
+              regex: "^(?!\\./)",
+              message: "The scoring module is pure: import only its own files (./...).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Tests of the scoring module may also import vitest.
+    files: ["src/scoring/**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
               regex: "^(?!\\./|vitest$)",
-              message:
-                "The scoring module is pure: import only its own files (./...), plus vitest in tests.",
+              message: "Scoring tests may import only the module's own files (./...) and vitest.",
             },
           ],
         },
