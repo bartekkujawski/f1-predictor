@@ -110,4 +110,14 @@ describe("scoreSession", () => {
 
     expect(scoreSession("Sprint", top10, perfectPrediction)).toEqual({ sessionScore: 300, exactHits: 10 });
   });
+
+  it("scores 0 when the Player made no Prediction", () => {
+    expect(scoreSession("Race", top10, null)).toEqual({ sessionScore: 0, exactHits: 0 });
+  });
+
+  it("scores 0 for a Cancelled Session, even for a Prediction that would be perfect", () => {
+    const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
+
+    expect(scoreSession("Race", null, perfectPrediction)).toEqual({ sessionScore: 0, exactHits: 0 });
+  });
 });
