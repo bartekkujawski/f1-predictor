@@ -6,7 +6,9 @@ export type RegularDriverId = string;
 // A missing key is an empty slot (ADR-0008). Positions beyond 10 may be passed and score 0.
 export type Top10 = ReadonlyMap<number, RegularDriverId>;
 
-// Ten Regular Drivers in predicted order; index 0 is P1.
+// Ten different Regular Drivers in predicted order; index 0 is P1.
+// Not validated here: a Prediction is checked when it is saved (docs/rules.md),
+// so the scoring module trusts its input.
 export type Prediction = readonly RegularDriverId[];
 
 export type SessionScore = { sessionScore: number; exactHits: number };
