@@ -16,7 +16,9 @@ export function buildSeasonTable(members: readonly MemberSessionResults[]): Seas
     exactHits: member.sessions.reduce((sum, session) => sum + session.exactHits, 0),
   }));
 
-  const ranked = totals.sort((a, b) => b.totalPoints - a.totalPoints);
+  const ranked = totals.sort(
+    (a, b) => b.totalPoints - a.totalPoints || b.exactHits - a.exactHits,
+  );
 
   return ranked.map((row, index) => ({ position: index + 1, ...row }));
 }

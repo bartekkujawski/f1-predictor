@@ -27,4 +27,16 @@ describe("buildSeasonTable", () => {
       { position: 2, memberId: "ania", totalPoints: 80, exactHits: 1 },
     ]);
   });
+
+  it("breaks a tie on points by more Exact Hits", () => {
+    const table = buildSeasonTable([
+      { memberId: "ania", sessions: [{ sessionScore: 100, exactHits: 2 }] },
+      { memberId: "bartek", sessions: [{ sessionScore: 100, exactHits: 4 }] },
+    ]);
+
+    expect(table).toEqual([
+      { position: 1, memberId: "bartek", totalPoints: 100, exactHits: 4 },
+      { position: 2, memberId: "ania", totalPoints: 100, exactHits: 2 },
+    ]);
+  });
 });
