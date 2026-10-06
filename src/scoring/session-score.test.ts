@@ -32,4 +32,10 @@ describe("scoreSession", () => {
 
     expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 15, exactHits: 0 });
   });
+
+  it("scores 5 for a Pick at P2 whose driver finishes P10", () => {
+    const prediction = predictionWith({ 2: "LIN" });
+
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 5, exactHits: 0 });
+  });
 });

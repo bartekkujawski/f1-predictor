@@ -12,7 +12,7 @@ export type SessionResult = { sessionScore: number; exactHits: number };
 
 const BASE_POINTS = 5;
 
-// Position Difference → Accuracy Bonus.
+// Position Difference → Accuracy Bonus. A difference not listed earns no bonus.
 const ACCURACY_BONUS: Record<number, number> = {
   0: 20,
   2: 10,
@@ -32,7 +32,7 @@ export function scoreSession(
     if (finishPosition === undefined) return;
 
     const positionDifference = Math.abs(pickPosition - finishPosition);
-    sessionScore += BASE_POINTS + ACCURACY_BONUS[positionDifference];
+    sessionScore += BASE_POINTS + (ACCURACY_BONUS[positionDifference] ?? 0);
     if (positionDifference === 0) exactHits += 1;
   });
 
