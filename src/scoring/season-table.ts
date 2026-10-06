@@ -20,5 +20,12 @@ export function buildSeasonTable(members: readonly MemberSessionResults[]): Seas
     (a, b) => b.totalPoints - a.totalPoints || b.exactHits - a.exactHits,
   );
 
-  return ranked.map((row, index) => ({ position: index + 1, ...row }));
+  // Members tied on points and Exact Hits share the position of the first of them,
+  // and the next position is skipped (1-2-2-4).
+  return ranked.map((row) => {
+    const firstTied = ranked.findIndex(
+      (other) => other.totalPoints === row.totalPoints && other.exactHits === row.exactHits,
+    );
+    return { position: firstTied + 1, ...row };
+  });
 }
