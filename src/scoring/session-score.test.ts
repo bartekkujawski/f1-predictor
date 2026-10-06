@@ -69,6 +69,12 @@ describe("scoreSession", () => {
     expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 7, exactHits: 0 });
   });
 
+  it("scores 6 for a Pick seven positions off", () => {
+    const prediction = predictionWith({ 2: "NOR" });
+
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 6, exactHits: 0 });
+  });
+
   it("scores 0 for a Pick whose driver finishes outside the Top 10 (P14 or DNF)", () => {
     const prediction = predictionWith({ 2: "BEA" });
 
