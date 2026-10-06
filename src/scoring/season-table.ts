@@ -1,6 +1,6 @@
-import type { SessionResult } from "./session-score";
+import type { SessionScore } from "./session-score";
 
-export type MemberSessionResults = { memberId: string; sessions: readonly SessionResult[] };
+export type MemberSessionScores = { memberId: string; sessions: readonly SessionScore[] };
 
 export type SeasonTableRow = {
   position: number;
@@ -9,7 +9,7 @@ export type SeasonTableRow = {
   exactHits: number;
 };
 
-export function buildSeasonTable(members: readonly MemberSessionResults[]): SeasonTableRow[] {
+export function buildSeasonTable(members: readonly MemberSessionScores[]): SeasonTableRow[] {
   const totals = members.map((member) => ({
     memberId: member.memberId,
     totalPoints: member.sessions.reduce((sum, session) => sum + session.sessionScore, 0),

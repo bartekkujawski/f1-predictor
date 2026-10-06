@@ -8,7 +8,7 @@ export type Top10 = ReadonlyMap<number, RegularDriverId>;
 // Ten Regular Drivers in predicted order; index 0 is P1.
 export type Prediction = readonly RegularDriverId[];
 
-export type SessionResult = { sessionScore: number; exactHits: number };
+export type SessionScore = { sessionScore: number; exactHits: number };
 
 const BASE_POINTS = 5;
 
@@ -36,7 +36,7 @@ export function scoreSession(
   kind: SessionKind,
   top10: Top10 | null,
   prediction: Prediction | null,
-): SessionResult {
+): SessionScore {
   let sessionScore = 0;
   let exactHits = 0;
 
