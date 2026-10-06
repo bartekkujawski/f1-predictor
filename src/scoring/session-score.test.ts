@@ -30,61 +30,61 @@ describe("scoreSession", () => {
   it("scores 25 for a Pick at P2 whose driver finishes P2", () => {
     const prediction = predictionWith({ 2: "ANT" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 25, exactHits: 1 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 25, exactHits: 1 });
   });
 
   it("scores 15 for a Pick at P2 whose driver finishes P4", () => {
     const prediction = predictionWith({ 2: "LEC" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 15, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 15, exactHits: 0 });
   });
 
   it("scores 5 for a Pick at P2 whose driver finishes P10", () => {
     const prediction = predictionWith({ 2: "LIN" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 5, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 5, exactHits: 0 });
   });
 
   it("scores 19 for a Pick one position off", () => {
     const prediction = predictionWith({ 2: "HAM" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 19, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 19, exactHits: 0 });
   });
 
   it("scores 12 for a Pick three positions off", () => {
     const prediction = predictionWith({ 2: "HAD" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 12, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 12, exactHits: 0 });
   });
 
   it("scores 10 for a Pick four positions off", () => {
     const prediction = predictionWith({ 2: "PIA" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 10, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 10, exactHits: 0 });
   });
 
   it("scores 8 for a Pick five positions off", () => {
     const prediction = predictionWith({ 2: "LAW" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 8, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 8, exactHits: 0 });
   });
 
   it("scores 7 for a Pick six positions off", () => {
     const prediction = predictionWith({ 2: "ALO" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 7, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 7, exactHits: 0 });
   });
 
   it("scores 6 for a Pick seven positions off", () => {
     const prediction = predictionWith({ 2: "NOR" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 6, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 6, exactHits: 0 });
   });
 
   it("scores 0 for a Pick whose driver finishes outside the Top 10 (P14 or DNF)", () => {
     const prediction = predictionWith({ 2: "BEA" });
 
-    expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 0, exactHits: 0 });
+    expect(scoreSession("Sprint", top10, prediction)).toEqual({ points: 0, exactHits: 0 });
   });
 
   it("scores 0 for drivers beyond P10 even when given the full classification", () => {
@@ -93,37 +93,37 @@ describe("scoreSession", () => {
     );
     const prediction = predictionWith({});
 
-    expect(scoreSession("Sprint", fullClassification, prediction)).toEqual({ sessionScore: 0, exactHits: 0 });
+    expect(scoreSession("Sprint", fullClassification, prediction)).toEqual({ points: 0, exactHits: 0 });
   });
 
   it("multiplies Race points by 3", () => {
     const prediction = predictionWith({ 2: "ANT" });
 
-    expect(scoreSession("Race", top10, prediction)).toEqual({ sessionScore: 75, exactHits: 1 });
+    expect(scoreSession("Race", top10, prediction)).toEqual({ points: 75, exactHits: 1 });
   });
 
   it("multiplies Qualifying points by 2", () => {
     const prediction = predictionWith({ 2: "ANT" });
 
-    expect(scoreSession("Qualifying", top10, prediction)).toEqual({ sessionScore: 50, exactHits: 1 });
+    expect(scoreSession("Qualifying", top10, prediction)).toEqual({ points: 50, exactHits: 1 });
   });
 
   it("adds 50 for a Perfect Top 10 before the multiplier, for a max Race score of 900", () => {
     const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
 
-    expect(scoreSession("Race", top10, perfectPrediction)).toEqual({ sessionScore: 900, exactHits: 10 });
+    expect(scoreSession("Race", top10, perfectPrediction)).toEqual({ points: 900, exactHits: 10 });
   });
 
   it("gives a max Qualifying score of 600 for a Perfect Top 10", () => {
     const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
 
-    expect(scoreSession("Qualifying", top10, perfectPrediction)).toEqual({ sessionScore: 600, exactHits: 10 });
+    expect(scoreSession("Qualifying", top10, perfectPrediction)).toEqual({ points: 600, exactHits: 10 });
   });
 
   it("gives a max Sprint score of 300 for a Perfect Top 10", () => {
     const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
 
-    expect(scoreSession("Sprint", top10, perfectPrediction)).toEqual({ sessionScore: 300, exactHits: 10 });
+    expect(scoreSession("Sprint", top10, perfectPrediction)).toEqual({ points: 300, exactHits: 10 });
   });
 
   it("gives whole-number points for every Pick, in every Session Kind", () => {
@@ -131,7 +131,7 @@ describe("scoreSession", () => {
     const scores = sessionKinds.flatMap((kind) =>
       Array.from({ length: 10 }, (_, index) => index + 1).flatMap((pickPosition) =>
         REGULAR_DRIVERS_2026.map(
-          (driver) => scoreSession(kind, top10, predictionWith({ [pickPosition]: driver })).sessionScore,
+          (driver) => scoreSession(kind, top10, predictionWith({ [pickPosition]: driver })).points,
         ),
       ),
     );
@@ -140,13 +140,13 @@ describe("scoreSession", () => {
   });
 
   it("scores 0 when the Player made no Prediction", () => {
-    expect(scoreSession("Race", top10, null)).toEqual({ sessionScore: 0, exactHits: 0 });
+    expect(scoreSession("Race", top10, null)).toEqual({ points: 0, exactHits: 0 });
   });
 
   it("scores 0 for a Cancelled Session, even for a Prediction that would be perfect", () => {
     const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
 
-    expect(scoreSession("Race", null, perfectPrediction)).toEqual({ sessionScore: 0, exactHits: 0 });
+    expect(scoreSession("Race", null, perfectPrediction)).toEqual({ points: 0, exactHits: 0 });
   });
 
   it("scores a Starting Grid with an empty slot as published, with no Perfect Top 10 (Belgium 2021 shape)", () => {
@@ -154,7 +154,7 @@ describe("scoreSession", () => {
     const startingGrid = top10WithEmptySlots(7);
     const prediction = REGULAR_DRIVERS_2026.slice(0, 10);
 
-    expect(scoreSession("Qualifying", startingGrid, prediction)).toEqual({ sessionScore: 450, exactHits: 9 });
+    expect(scoreSession("Qualifying", startingGrid, prediction)).toEqual({ points: 450, exactHits: 9 });
   });
 
   it("scores a Starting Grid with an empty last slot as published, with no Perfect Top 10 (Miami 2022 shape)", () => {
@@ -162,6 +162,6 @@ describe("scoreSession", () => {
     const startingGrid = top10WithEmptySlots(10);
     const prediction = [...REGULAR_DRIVERS_2026.slice(0, 9), "HUL"];
 
-    expect(scoreSession("Qualifying", startingGrid, prediction)).toEqual({ sessionScore: 450, exactHits: 9 });
+    expect(scoreSession("Qualifying", startingGrid, prediction)).toEqual({ points: 450, exactHits: 9 });
   });
 });

@@ -11,7 +11,7 @@ export type Top10 = ReadonlyMap<number, RegularDriverId>;
 // so the scoring module trusts its input.
 export type Prediction = readonly RegularDriverId[];
 
-export type SessionScore = { sessionScore: number; exactHits: number };
+export type SessionScore = { points: number; exactHits: number };
 
 // Positions that score. Also the length of a Prediction.
 const TOP_10_SIZE = 10;
@@ -43,7 +43,7 @@ export function scoreSession(
   top10: Top10 | null,
   prediction: Prediction | null,
 ): SessionScore {
-  let sessionScore = 0;
+  let points = 0;
   let exactHits = 0;
 
   prediction?.forEach((driver, index) => {
@@ -52,13 +52,13 @@ export function scoreSession(
     if (top10Position === undefined) return;
 
     const positionDifference = Math.abs(pickPosition - top10Position);
-    sessionScore += BASE_POINTS + (ACCURACY_BONUS[positionDifference] ?? 0);
+    points += BASE_POINTS + (ACCURACY_BONUS[positionDifference] ?? 0);
     if (positionDifference === 0) exactHits += 1;
   });
 
-  if (exactHits === TOP_10_SIZE) sessionScore += PERFECT_TOP_10_BONUS;
+  if (exactHits === TOP_10_SIZE) points += PERFECT_TOP_10_BONUS;
 
-  return { sessionScore: sessionScore * SESSION_MULTIPLIER[kind], exactHits };
+  return { points: points * SESSION_MULTIPLIER[kind], exactHits };
 }
 
 function positionInTop10(top10: Top10 | null, driver: RegularDriverId): number | undefined {

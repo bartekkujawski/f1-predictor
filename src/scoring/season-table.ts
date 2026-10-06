@@ -14,7 +14,7 @@ type MemberTotals = Omit<SeasonTableRow, "position">;
 export function buildSeasonTable(members: readonly MemberSessionScores[]): SeasonTableRow[] {
   const totals: MemberTotals[] = members.map((member) => ({
     memberId: member.memberId,
-    totalPoints: member.sessions.reduce((sum, session) => sum + session.sessionScore, 0),
+    totalPoints: member.sessions.reduce((sum, session) => sum + session.points, 0),
     exactHits: member.sessions.reduce((sum, session) => sum + session.exactHits, 0),
   }));
 

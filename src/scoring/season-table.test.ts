@@ -7,8 +7,8 @@ describe("buildSeasonTable", () => {
       {
         memberId: "ania",
         sessions: [
-          { sessionScore: 75, exactHits: 1 },
-          { sessionScore: 50, exactHits: 1 },
+          { points: 75, exactHits: 1 },
+          { points: 50, exactHits: 1 },
         ],
       },
     ]);
@@ -18,8 +18,8 @@ describe("buildSeasonTable", () => {
 
   it("ranks Members by total points, highest first", () => {
     const table = buildSeasonTable([
-      { memberId: "ania", sessions: [{ sessionScore: 80, exactHits: 1 }] },
-      { memberId: "bartek", sessions: [{ sessionScore: 120, exactHits: 1 }] },
+      { memberId: "ania", sessions: [{ points: 80, exactHits: 1 }] },
+      { memberId: "bartek", sessions: [{ points: 120, exactHits: 1 }] },
     ]);
 
     expect(table).toEqual([
@@ -30,8 +30,8 @@ describe("buildSeasonTable", () => {
 
   it("breaks a tie on points by more Exact Hits", () => {
     const table = buildSeasonTable([
-      { memberId: "ania", sessions: [{ sessionScore: 100, exactHits: 2 }] },
-      { memberId: "bartek", sessions: [{ sessionScore: 100, exactHits: 4 }] },
+      { memberId: "ania", sessions: [{ points: 100, exactHits: 2 }] },
+      { memberId: "bartek", sessions: [{ points: 100, exactHits: 4 }] },
     ]);
 
     expect(table).toEqual([
@@ -42,10 +42,10 @@ describe("buildSeasonTable", () => {
 
   it("gives Members still tied after Exact Hits a shared position, and skips the next one", () => {
     const table = buildSeasonTable([
-      { memberId: "ania", sessions: [{ sessionScore: 120, exactHits: 5 }] },
-      { memberId: "bartek", sessions: [{ sessionScore: 100, exactHits: 3 }] },
-      { memberId: "celina", sessions: [{ sessionScore: 100, exactHits: 3 }] },
-      { memberId: "darek", sessions: [{ sessionScore: 80, exactHits: 2 }] },
+      { memberId: "ania", sessions: [{ points: 120, exactHits: 5 }] },
+      { memberId: "bartek", sessions: [{ points: 100, exactHits: 3 }] },
+      { memberId: "celina", sessions: [{ points: 100, exactHits: 3 }] },
+      { memberId: "darek", sessions: [{ points: 80, exactHits: 2 }] },
     ]);
 
     expect(table).toEqual([
@@ -58,7 +58,7 @@ describe("buildSeasonTable", () => {
 
   it("shows a Member with no Session Scores yet with 0 points", () => {
     const table = buildSeasonTable([
-      { memberId: "ania", sessions: [{ sessionScore: 50, exactHits: 1 }] },
+      { memberId: "ania", sessions: [{ points: 50, exactHits: 1 }] },
       { memberId: "ewa", sessions: [] },
     ]);
 
