@@ -87,6 +87,15 @@ describe("scoreSession", () => {
     expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 0, exactHits: 0 });
   });
 
+  it("scores 0 for drivers beyond P10 even when given the full classification", () => {
+    const fullClassification: Top10 = new Map(
+      REGULAR_DRIVERS_2026.map((driver, index) => [index + 1, driver]),
+    );
+    const prediction = predictionWith({});
+
+    expect(scoreSession("Sprint", fullClassification, prediction)).toEqual({ sessionScore: 0, exactHits: 0 });
+  });
+
   it("multiplies Race points by 3", () => {
     const prediction = predictionWith({ 2: "ANT" });
 

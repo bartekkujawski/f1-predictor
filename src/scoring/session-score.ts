@@ -57,7 +57,7 @@ export function scoreSession(
 
 function positionInTop10(top10: Top10 | null, driver: RegularDriverId): number | undefined {
   for (const [position, driverAtPosition] of top10 ?? []) {
-    if (driverAtPosition === driver) return position;
+    if (driverAtPosition === driver && position <= 10) return position;
   }
   return undefined;
 }
