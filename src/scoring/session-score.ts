@@ -15,6 +15,7 @@ const BASE_POINTS = 5;
 // Position Difference → Accuracy Bonus. A difference not listed earns no bonus.
 const ACCURACY_BONUS: Record<number, number> = {
   0: 20,
+  1: 14,
   2: 10,
 };
 
