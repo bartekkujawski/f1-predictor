@@ -55,4 +55,16 @@ describe("buildSeasonTable", () => {
       { position: 4, memberId: "darek", totalPoints: 80, exactHits: 2 },
     ]);
   });
+
+  it("shows a Member with no Session Scores yet with 0 points", () => {
+    const table = buildSeasonTable([
+      { memberId: "ania", sessions: [{ sessionScore: 50, exactHits: 1 }] },
+      { memberId: "ewa", sessions: [] },
+    ]);
+
+    expect(table).toEqual([
+      { position: 1, memberId: "ania", totalPoints: 50, exactHits: 1 },
+      { position: 2, memberId: "ewa", totalPoints: 0, exactHits: 0 },
+    ]);
+  });
 });
