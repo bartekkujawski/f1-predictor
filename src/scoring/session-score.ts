@@ -42,7 +42,9 @@ export function scoreSession(
     if (positionDifference === 0) exactHits += 1;
   });
 
-  return { sessionScore, exactHits };
+  const sessionMultiplier = kind === "Race" ? 3 : 1;
+
+  return { sessionScore: sessionScore * sessionMultiplier, exactHits };
 }
 
 function positionInTop10(top10: Top10 | null, driver: RegularDriverId): number | undefined {

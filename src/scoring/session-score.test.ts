@@ -80,4 +80,10 @@ describe("scoreSession", () => {
 
     expect(scoreSession("Sprint", top10, prediction)).toEqual({ sessionScore: 0, exactHits: 0 });
   });
+
+  it("multiplies Race points by 3", () => {
+    const prediction = predictionWith({ 2: "ANT" });
+
+    expect(scoreSession("Race", top10, prediction)).toEqual({ sessionScore: 75, exactHits: 1 });
+  });
 });
