@@ -13,6 +13,9 @@ export type Prediction = readonly RegularDriverId[];
 
 export type SessionScore = { sessionScore: number; exactHits: number };
 
+// Positions that score. Also the length of a Prediction.
+const TOP_10_SIZE = 10;
+
 const BASE_POINTS = 5;
 
 // Position Difference → Accuracy Bonus. A difference not listed earns no bonus.
@@ -53,14 +56,14 @@ export function scoreSession(
     if (positionDifference === 0) exactHits += 1;
   });
 
-  if (exactHits === 10) sessionScore += PERFECT_TOP_10_BONUS;
+  if (exactHits === TOP_10_SIZE) sessionScore += PERFECT_TOP_10_BONUS;
 
   return { sessionScore: sessionScore * SESSION_MULTIPLIER[kind], exactHits };
 }
 
 function positionInTop10(top10: Top10 | null, driver: RegularDriverId): number | undefined {
   for (const [position, driverAtPosition] of top10 ?? []) {
-    if (driverAtPosition === driver && position <= 10) return position;
+    if (driverAtPosition === driver && position <= TOP_10_SIZE) return position;
   }
   return undefined;
 }
