@@ -11,7 +11,12 @@ export type Prediction = readonly RegularDriverId[];
 export type SessionResult = { sessionScore: number; exactHits: number };
 
 const BASE_POINTS = 5;
-const EXACT_HIT_BONUS = 20;
+
+// Position Difference → Accuracy Bonus.
+const ACCURACY_BONUS: Record<number, number> = {
+  0: 20,
+  2: 10,
+};
 
 export function scoreSession(
   kind: SessionKind,
@@ -22,11 +27,21 @@ export function scoreSession(
   let exactHits = 0;
 
   prediction?.forEach((driver, index) => {
-    if (top10?.get(index + 1) === driver) {
-      sessionScore += BASE_POINTS + EXACT_HIT_BONUS;
-      exactHits += 1;
-    }
+    const pickPosition = index + 1;
+    const finishPosition = positionInTop10(top10, driver);
+    if (finishPosition === undefined) return;
+
+    const positionDifference = Math.abs(pickPosition - finishPosition);
+    sessionScore += BASE_POINTS + ACCURACY_BONUS[positionDifference];
+    if (positionDifference === 0) exactHits += 1;
   });
 
   return { sessionScore, exactHits };
+}
+
+function positionInTop10(top10: Top10 | null, driver: RegularDriverId): number | undefined {
+  for (const [position, driverAtPosition] of top10 ?? []) {
+    if (driverAtPosition === driver) return position;
+  }
+  return undefined;
 }
