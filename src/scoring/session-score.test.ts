@@ -11,6 +11,12 @@ const top10: Top10 = new Map(
   REGULAR_DRIVERS_2026.slice(0, 10).map((driver, index) => [index + 1, driver]),
 );
 
+// A Starting Grid Top 10 where pit lane starters left the given slots empty.
+// Nobody moves up, so every other driver keeps their number (ADR-0008).
+function top10WithEmptySlots(...emptySlots: number[]): Top10 {
+  return new Map([...top10].filter(([position]) => !emptySlots.includes(position)));
+}
+
 // Drivers who finish outside the Top 10. Picks of them score 0.
 const OUTSIDE_TOP_10 = REGULAR_DRIVERS_2026.slice(10);
 
@@ -119,5 +125,21 @@ describe("scoreSession", () => {
     const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
 
     expect(scoreSession("Race", null, perfectPrediction)).toEqual({ sessionScore: 0, exactHits: 0 });
+  });
+
+  it("scores a Starting Grid with an empty slot as published, with no Perfect Top 10 (Belgium 2021 shape)", () => {
+    // LAW qualified P7 and started from the pit lane; slot 7 stays empty.
+    const startingGrid = top10WithEmptySlots(7);
+    const prediction = REGULAR_DRIVERS_2026.slice(0, 10);
+
+    expect(scoreSession("Qualifying", startingGrid, prediction)).toEqual({ sessionScore: 450, exactHits: 9 });
+  });
+
+  it("scores a Starting Grid with an empty last slot as published, with no Perfect Top 10 (Miami 2022 shape)", () => {
+    // LIN started from the pit lane, so slot 10 stays empty and HUL keeps grid slot 11.
+    const startingGrid = top10WithEmptySlots(10);
+    const prediction = [...REGULAR_DRIVERS_2026.slice(0, 9), "HUL"];
+
+    expect(scoreSession("Qualifying", startingGrid, prediction)).toEqual({ sessionScore: 450, exactHits: 9 });
   });
 });
