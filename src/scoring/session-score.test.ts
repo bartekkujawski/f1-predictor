@@ -98,4 +98,16 @@ describe("scoreSession", () => {
 
     expect(scoreSession("Race", top10, perfectPrediction)).toEqual({ sessionScore: 900, exactHits: 10 });
   });
+
+  it("gives a max Qualifying score of 600 for a Perfect Top 10", () => {
+    const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
+
+    expect(scoreSession("Qualifying", top10, perfectPrediction)).toEqual({ sessionScore: 600, exactHits: 10 });
+  });
+
+  it("gives a max Sprint score of 300 for a Perfect Top 10", () => {
+    const perfectPrediction = REGULAR_DRIVERS_2026.slice(0, 10);
+
+    expect(scoreSession("Sprint", top10, perfectPrediction)).toEqual({ sessionScore: 300, exactHits: 10 });
+  });
 });
