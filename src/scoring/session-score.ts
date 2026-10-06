@@ -38,11 +38,18 @@ const SESSION_MULTIPLIER: Record<SessionKind, number> = {
   Race: 3,
 };
 
-export function scoreSession(
+const positionInTop10 = (top10: Top10 | null, driver: RegularDriverId): number | undefined => {
+  for (const [position, driverAtPosition] of top10 ?? []) {
+    if (driverAtPosition === driver && position <= TOP_10_SIZE) return position;
+  }
+  return undefined;
+};
+
+export const scoreSession = (
   kind: SessionKind,
   top10: Top10 | null,
   prediction: Prediction | null,
-): SessionScore {
+): SessionScore => {
   let points = 0;
   let exactHits = 0;
 
@@ -59,11 +66,4 @@ export function scoreSession(
   if (exactHits === TOP_10_SIZE) points += PERFECT_TOP_10_BONUS;
 
   return { points: points * SESSION_MULTIPLIER[kind], exactHits };
-}
-
-function positionInTop10(top10: Top10 | null, driver: RegularDriverId): number | undefined {
-  for (const [position, driverAtPosition] of top10 ?? []) {
-    if (driverAtPosition === driver && position <= TOP_10_SIZE) return position;
-  }
-  return undefined;
-}
+};

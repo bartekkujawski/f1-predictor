@@ -13,18 +13,16 @@ const top10: Top10 = new Map(
 
 // A Starting Grid Top 10 where pit lane starters left the given slots empty.
 // Nobody moves up, so every other driver keeps their number (ADR-0008).
-function top10WithEmptySlots(...emptySlots: number[]): Top10 {
-  return new Map([...top10].filter(([position]) => !emptySlots.includes(position)));
-}
+const top10WithEmptySlots = (...emptySlots: number[]): Top10 =>
+  new Map([...top10].filter(([position]) => !emptySlots.includes(position)));
 
 // Drivers who finish outside the Top 10. Picks of them score 0.
 const OUTSIDE_TOP_10 = REGULAR_DRIVERS_2026.slice(10);
 
 // A Prediction where only the given positions name Top 10 drivers;
 // every other Pick names a different driver outside the Top 10, so it scores 0.
-function predictionWith(picks: Record<number, string>): Prediction {
-  return OUTSIDE_TOP_10.slice(0, 10).map((filler, index) => picks[index + 1] ?? filler);
-}
+const predictionWith = (picks: Record<number, string>): Prediction =>
+  OUTSIDE_TOP_10.slice(0, 10).map((filler, index) => picks[index + 1] ?? filler);
 
 describe("scoreSession", () => {
   it("scores 25 for a Pick at P2 whose driver finishes P2", () => {

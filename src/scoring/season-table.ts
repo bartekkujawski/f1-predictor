@@ -11,7 +11,11 @@ export type SeasonTableRow = {
 
 type MemberTotals = Omit<SeasonTableRow, "position">;
 
-export function buildSeasonTable(members: readonly MemberSessionScores[]): SeasonTableRow[] {
+// More points first; on equal points, more Exact Hits first. 0 means tied.
+const compareTotals = (a: MemberTotals, b: MemberTotals): number =>
+  b.totalPoints - a.totalPoints || b.exactHits - a.exactHits;
+
+export const buildSeasonTable = (members: readonly MemberSessionScores[]): SeasonTableRow[] => {
   const totals: MemberTotals[] = members.map((member) => ({
     memberId: member.memberId,
     totalPoints: member.sessions.reduce((sum, session) => sum + session.points, 0),
@@ -26,9 +30,4 @@ export function buildSeasonTable(members: readonly MemberSessionScores[]): Seaso
     const firstTied = ranked.findIndex((other) => compareTotals(other, row) === 0);
     return { position: firstTied + 1, ...row };
   });
-}
-
-// More points first; on equal points, more Exact Hits first. 0 means tied.
-function compareTotals(a: MemberTotals, b: MemberTotals): number {
-  return b.totalPoints - a.totalPoints || b.exactHits - a.exactHits;
-}
+};
