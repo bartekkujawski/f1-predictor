@@ -126,6 +126,19 @@ describe("scoreSession", () => {
     expect(scoreSession("Sprint", top10, perfectPrediction)).toEqual({ sessionScore: 300, exactHits: 10 });
   });
 
+  it("gives whole-number points for every Pick, in every Session Kind", () => {
+    const sessionKinds = ["Sprint", "Qualifying", "Race"] as const;
+    const scores = sessionKinds.flatMap((kind) =>
+      Array.from({ length: 10 }, (_, index) => index + 1).flatMap((pickPosition) =>
+        REGULAR_DRIVERS_2026.map(
+          (driver) => scoreSession(kind, top10, predictionWith({ [pickPosition]: driver })).sessionScore,
+        ),
+      ),
+    );
+
+    expect(scores.filter((score) => !Number.isInteger(score))).toEqual([]);
+  });
+
   it("scores 0 when the Player made no Prediction", () => {
     expect(scoreSession("Race", top10, null)).toEqual({ sessionScore: 0, exactHits: 0 });
   });
