@@ -24,6 +24,12 @@ const ACCURACY_BONUS: Record<number, number> = {
   7: 1,
 };
 
+const SESSION_MULTIPLIER: Record<SessionKind, number> = {
+  Sprint: 1,
+  Qualifying: 2,
+  Race: 3,
+};
+
 export function scoreSession(
   kind: SessionKind,
   top10: Top10 | null,
@@ -42,9 +48,7 @@ export function scoreSession(
     if (positionDifference === 0) exactHits += 1;
   });
 
-  const sessionMultiplier = kind === "Race" ? 3 : 1;
-
-  return { sessionScore: sessionScore * sessionMultiplier, exactHits };
+  return { sessionScore: sessionScore * SESSION_MULTIPLIER[kind], exactHits };
 }
 
 function positionInTop10(top10: Top10 | null, driver: RegularDriverId): number | undefined {
