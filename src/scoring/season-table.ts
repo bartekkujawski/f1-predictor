@@ -9,23 +9,26 @@ export type SeasonTableRow = {
   exactHits: number;
 };
 
+type MemberTotals = Omit<SeasonTableRow, "position">;
+
 export function buildSeasonTable(members: readonly MemberSessionScores[]): SeasonTableRow[] {
-  const totals = members.map((member) => ({
+  const totals: MemberTotals[] = members.map((member) => ({
     memberId: member.memberId,
     totalPoints: member.sessions.reduce((sum, session) => sum + session.sessionScore, 0),
     exactHits: member.sessions.reduce((sum, session) => sum + session.exactHits, 0),
   }));
 
-  const ranked = totals.sort(
-    (a, b) => b.totalPoints - a.totalPoints || b.exactHits - a.exactHits,
-  );
+  const ranked = totals.toSorted(compareTotals);
 
   // Members tied on points and Exact Hits share the position of the first of them,
   // and the next position is skipped (1-2-2-4).
   return ranked.map((row) => {
-    const firstTied = ranked.findIndex(
-      (other) => other.totalPoints === row.totalPoints && other.exactHits === row.exactHits,
-    );
+    const firstTied = ranked.findIndex((other) => compareTotals(other, row) === 0);
     return { position: firstTied + 1, ...row };
   });
+}
+
+// More points first; on equal points, more Exact Hits first. 0 means tied.
+function compareTotals(a: MemberTotals, b: MemberTotals): number {
+  return b.totalPoints - a.totalPoints || b.exactHits - a.exactHits;
 }
