@@ -14,6 +14,18 @@ CREATE TABLE "account" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "auth_session" (
+	"id" text PRIMARY KEY NOT NULL,
+	"token" text NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"player_id" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "auth_session_token_unique" UNIQUE("token")
+);
+--> statement-breakpoint
 CREATE TABLE "player" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -26,18 +38,6 @@ CREATE TABLE "player" (
 	CONSTRAINT "player_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "session" (
-	"id" text PRIMARY KEY NOT NULL,
-	"token" text NOT NULL,
-	"expires_at" timestamp NOT NULL,
-	"ip_address" text,
-	"user_agent" text,
-	"player_id" text NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "session_token_unique" UNIQUE("token")
-);
---> statement-breakpoint
 CREATE TABLE "verification" (
 	"id" text PRIMARY KEY NOT NULL,
 	"identifier" text NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE "verification" (
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_player_id_player_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."player"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "session" ADD CONSTRAINT "session_player_id_player_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."player"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "auth_session" ADD CONSTRAINT "auth_session_player_id_player_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."player"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_player_id_idx" ON "account" USING btree ("player_id");--> statement-breakpoint
-CREATE INDEX "session_player_id_idx" ON "session" USING btree ("player_id");--> statement-breakpoint
+CREATE INDEX "auth_session_player_id_idx" ON "auth_session" USING btree ("player_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");

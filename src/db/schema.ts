@@ -23,9 +23,10 @@ export const player = pgTable("player", {
   ...timestamps,
 });
 
-// A signed-in browser. The cookie holds the token.
-export const session = pgTable(
-  "session",
+// A signed-in browser; the cookie holds the token. Better Auth calls it a "session", but in our
+// domain a Session is a Sprint, Qualifying or Race, so the table is named auth_session.
+export const authSession = pgTable(
+  "auth_session",
   {
     id: text("id").primaryKey(),
     token: text("token").notNull().unique(),
@@ -37,7 +38,7 @@ export const session = pgTable(
       .references(() => player.id, { onDelete: "cascade" }),
     ...timestamps,
   },
-  (table) => [index("session_player_id_idx").on(table.playerId)],
+  (table) => [index("auth_session_player_id_idx").on(table.playerId)],
 );
 
 // A Player's identity at a sign-in provider (only Google for now).

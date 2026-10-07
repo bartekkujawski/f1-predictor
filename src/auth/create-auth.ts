@@ -22,6 +22,7 @@ export const createAuth = (db: Database, google: GoogleOptions) =>
       },
     },
     session: {
+      modelName: "authSession",
       fields: { userId: "playerId" },
       // Rounds are often two weeks apart, so a session lasts a month and is renewed daily on use.
       expiresIn: 30 * DAY_IN_SECONDS,
