@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { auth } from "./auth";
 
-export type SignedInPlayer = { id: string; nickname: string };
+export type SignedInPlayer = { nickname: string };
 
 // The Player whose session cookie came with the current request, or null when signed out.
 export const getSignedInPlayer = async (): Promise<SignedInPlayer | null> => {
@@ -10,5 +10,5 @@ export const getSignedInPlayer = async (): Promise<SignedInPlayer | null> => {
     return null;
   }
   // The nickname column is NOT NULL, but Better Auth types it as optional (see create-auth.ts).
-  return { id: authSession.user.id, nickname: authSession.user.nickname ?? authSession.user.name };
+  return { nickname: authSession.user.nickname ?? authSession.user.name };
 };

@@ -27,7 +27,7 @@ describe("HomePage", () => {
   });
 
   it("shows the signed-in Player's nickname and a sign-out button", async () => {
-    vi.mocked(getSignedInPlayer).mockResolvedValue({ id: "player-ania", nickname: "Anna Nowak" });
+    vi.mocked(getSignedInPlayer).mockResolvedValue({ nickname: "Anna Nowak" });
 
     const html = await renderHomePage();
 
