@@ -62,6 +62,6 @@ npm test           # Vitest, single run
 The app is deployed to Vercel at https://f1-predictor-omega.vercel.app/: `main` goes to production, and every pull request gets a
 preview deploy.
 
-Every deploy applies pending migrations before building (`buildCommand` in `vercel.json`), to the
-database in that deploy's `DATABASE_URL`. Give preview deploys their own database (e.g. a Neon branch
-per preview through the Neon integration), so a pull request's migrations never reach production.
+Production deploys apply pending migrations to Neon before building (`buildCommand` in
+`vercel.json`); a failed migration fails the deploy. Preview deploys skip migrations, so a pull
+request never changes the production database.
