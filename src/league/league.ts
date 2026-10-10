@@ -1,8 +1,8 @@
-import { randomInt } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { isAppAdmin } from "../app-admin/app-admin";
 import type { Database } from "../db/database";
 import { league, member } from "../db/schema";
+import { generateJoinCode, normalizeJoinCode } from "./join-code";
 
 export type LeagueDependencies = { db: Database; appAdminEmails: readonly string[] };
 
@@ -23,15 +23,6 @@ export type MemberLeague = { name: string };
 export type JoinLeagueOutcome = { status: "invalid-code" } | { status: "joined"; league: MemberLeague };
 
 export type LeagueJoinCodeOutcome = { status: "refused" } | { status: "none" } | { status: "found"; league: LeagueJoinCode };
-
-// Letters and digits that cannot be mistaken for each other when the code is typed by hand:
-// no 0/O and no 1/I/L.
-const JOIN_CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
-const JOIN_CODE_LENGTH = 8;
-
-// Random from a cryptographic source, so a Join Code cannot be guessed from another one.
-const generateJoinCode = (): string =>
-  Array.from({ length: JOIN_CODE_LENGTH }, () => JOIN_CODE_ALPHABET[randomInt(JOIN_CODE_ALPHABET.length)]).join("");
 
 // The single League of Part 1, or undefined before the App Admin creates it.
 const findLeague = async (db: Database): Promise<LeagueJoinCode | undefined> => {
@@ -82,12 +73,10 @@ export const joinLeague = async (
   playerId: string,
   joinCode: string,
 ): Promise<JoinLeagueOutcome> => {
-  // Join Codes are generated in uppercase; a code typed by hand may not be.
-  const normalized = joinCode.trim().toUpperCase();
   const [found] = await db
     .select({ id: league.id, name: league.name })
     .from(league)
-    .where(eq(league.joinCode, normalized));
+    .where(eq(league.joinCode, normalizeJoinCode(joinCode)));
   if (!found) {
     return { status: "invalid-code" };
   }
