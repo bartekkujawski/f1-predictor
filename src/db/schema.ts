@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 
 // The tables Better Auth needs (ADR-0005). Its "user" model is our Player, so the table and
 // the foreign keys use the domain name. The column set follows the Better Auth core schema.
@@ -74,4 +74,49 @@ export const verification = pgTable(
     ...timestamps,
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+// The calendar and drivers of a Season, synced from the ResultsSource by the refresh.
+
+export const sessionKind = pgEnum("session_kind", ["Qualifying", "Race"]);
+
+export const round = pgTable(
+  "round",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    season: integer("season").notNull(),
+    // The Round's number in the Season's calendar.
+    number: integer("number").notNull(),
+    name: text("name").notNull(),
+  },
+  (table) => [unique("round_season_number_unique").on(table.season, table.number)],
+);
+
+// A scored part of a Round. The Lock is stored, so saving a Prediction never depends on the
+// ResultsSource being up.
+export const session = pgTable(
+  "session",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    roundId: integer("round_id")
+      .notNull()
+      .references(() => round.id, { onDelete: "cascade" }),
+    kind: sessionKind("kind").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    locksAt: timestamp("locks_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [unique("session_round_id_kind_unique").on(table.roundId, table.kind)],
+);
+
+export const regularDriver = pgTable(
+  "regular_driver",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    season: integer("season").notNull(),
+    // The ResultsSource's identifier, e.g. "max_verstappen". Results name drivers by it.
+    driverId: text("driver_id").notNull(),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+  },
+  (table) => [unique("regular_driver_season_driver_id_unique").on(table.season, table.driverId)],
 );

@@ -27,6 +27,7 @@ The app reads its secrets from environment variables. Locally, put them in `.env
 | `BETTER_AUTH_URL`      | The app's own URL: `http://localhost:3000` locally, the production URL on Vercel.             |
 | `GOOGLE_CLIENT_ID`     | OAuth client ID from Google Cloud Console (APIs & Services → Credentials).                  |
 | `GOOGLE_CLIENT_SECRET` | Secret of the same OAuth client.                                                              |
+| `APP_ADMIN_EMAILS`     | Comma-separated emails of the App Admins, who can refresh the calendar at `/admin`.          |
 
 The Google OAuth client needs `<BETTER_AUTH_URL>/api/auth/callback/google` as an authorized
 redirect URI, for every URL the app signs in from. Preview deploys have changing URLs, so
