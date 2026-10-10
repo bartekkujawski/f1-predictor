@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { league, member, player } from "../db/schema";
 import { createTestDatabase } from "../db/test-database";
@@ -42,6 +43,14 @@ describe("createLeague", () => {
       status: "created",
       league: { name: "Friends League", joinCode: expect.stringMatching(/^[A-Z0-9]{8}$/) },
     });
+  });
+
+  it("makes the App Admin the League's first Member", async () => {
+    const { dependencies } = await setUp();
+
+    await createLeague(dependencies, appAdmin.id, "Friends League");
+
+    expect(await findMemberLeague(dependencies, appAdmin.id)).toEqual({ name: "Friends League" });
   });
 
   it("keeps the single League when asked to create another, and answers with it", async () => {
@@ -115,7 +124,7 @@ describe("joinLeague", () => {
     const outcome = await joinLeague(dependencies, ania.id, joinCode);
 
     expect(outcome).toEqual({ status: "joined", league: { name: "Friends League" } });
-    expect(await db.select().from(member)).toHaveLength(1);
+    expect(await db.select().from(member).where(eq(member.playerId, ania.id))).toHaveLength(1);
   });
 
   it("accepts a Join Code typed by hand in lowercase, with spaces around it", async () => {

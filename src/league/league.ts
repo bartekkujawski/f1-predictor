@@ -59,8 +59,10 @@ export const createLeague = async (
   const [created] = await db
     .insert(league)
     .values({ name: trimmedName, joinCode: generateJoinCode() })
-    .returning({ name: league.name, joinCode: league.joinCode });
-  return { status: "created", league: created };
+    .returning({ id: league.id, name: league.name, joinCode: league.joinCode });
+  // The App Admin plays too, so they need not open their own invite link.
+  await db.insert(member).values({ playerId, leagueId: created.id });
+  return { status: "created", league: { name: created.name, joinCode: created.joinCode } };
 };
 
 // The Join Code is the key to the League, so only the App Admin sees it and sends it on.
