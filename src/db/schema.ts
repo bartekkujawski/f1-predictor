@@ -1,4 +1,4 @@
-import { boolean, index, integer, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgEnum, pgTable, primaryKey, text, timestamp, unique } from "drizzle-orm/pg-core";
 
 // The tables Better Auth needs (ADR-0005). Its "user" model is our Player, so the table and
 // the foreign keys use the domain name. The column set follows the Better Auth core schema.
@@ -119,4 +119,29 @@ export const regularDriver = pgTable(
     name: text("name").notNull(),
   },
   (table) => [unique("regular_driver_season_driver_id_unique").on(table.season, table.driverId)],
+);
+
+// Players compete in a League. Part 1 has exactly one League, but Member is still a
+// Player × League join table, so several Leagues per Player need no data migration later.
+
+export const league = pgTable("league", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  joinCode: text("join_code").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const member = pgTable(
+  "member",
+  {
+    playerId: text("player_id")
+      .notNull()
+      .references(() => player.id, { onDelete: "cascade" }),
+    leagueId: integer("league_id")
+      .notNull()
+      .references(() => league.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  // One row per Player and League: joining twice cannot create a second Member.
+  (table) => [primaryKey({ columns: [table.playerId, table.leagueId] })],
 );

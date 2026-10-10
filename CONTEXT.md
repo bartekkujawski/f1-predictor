@@ -21,11 +21,13 @@ A Player who has joined a given League.
 _Avoid_: Participant
 
 **League Admin**:
-The Member who created the League. Can regenerate the Join Code and remove Members.
+The Member who created a League. Can regenerate the Join Code and remove Members. The first
+League, created by the App Admin, has no League Admin.
 _Avoid_: Owner, moderator
 
 **App Admin**:
-The operator of the whole app. Manages Regular Drivers and Substitutions and can trigger a result refresh.
+The operator of the whole app. Creates the first League and becomes its first Member. Manages
+Regular Drivers and Substitutions and can trigger a result refresh.
 _Avoid_: Superuser
 
 **Join Code**:

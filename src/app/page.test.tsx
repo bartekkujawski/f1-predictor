@@ -12,6 +12,7 @@ vi.mock("../auth/signed-in-player", () => ({ getSignedInPlayer: vi.fn() }));
 vi.mock("../auth/actions", () => ({ signInWithGoogle: vi.fn(), signOut: vi.fn() }));
 vi.mock("../calendar/current-calendar", () => ({ getCurrentCalendar: vi.fn() }));
 vi.mock("../app-admin/signed-in-app-admin", () => ({ isPlayerAppAdmin: vi.fn() }));
+vi.mock("../league/actions", () => ({ joinFromForm: vi.fn() }));
 
 const ania = { id: "player-ania", nickname: "Anna Nowak" };
 
@@ -51,7 +52,7 @@ const renderHomePage = async (): Promise<string> => renderToStaticMarkup(await H
 
 describe("HomePage", () => {
   beforeEach(() => {
-    vi.mocked(getCurrentCalendar).mockResolvedValue(calendar);
+    vi.mocked(getCurrentCalendar).mockResolvedValue({ status: "listed", calendar });
     vi.mocked(isPlayerAppAdmin).mockResolvedValue(false);
   });
 
@@ -90,6 +91,17 @@ describe("HomePage", () => {
     expect(html).toContain("Qualifying: locked");
     expect(html).toContain("Race: open");
     expect(html).toContain(`<time dateTime="${qualifyingStart}">`);
+  });
+
+  it("asks a Player who is not a Member to join first, instead of showing the calendar", async () => {
+    vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
+    vi.mocked(getCurrentCalendar).mockResolvedValue({ status: "not-a-member" });
+
+    const html = await renderHomePage();
+
+    expect(html).toContain("Join the League first");
+    expect(html).toContain('name="joinCode"');
+    expect(html).not.toContain("Bahrain Grand Prix");
   });
 
   it("highlights the next open Round", async () => {

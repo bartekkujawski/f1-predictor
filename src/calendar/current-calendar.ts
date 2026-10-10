@@ -1,5 +1,6 @@
 import { systemClock } from "../clock/clock";
 import { db } from "../db/database";
-import { type Calendar, listCalendar } from "./list-calendar";
+import { type CalendarOutcome, listCalendar } from "./list-calendar";
 
-export const getCurrentCalendar = (): Promise<Calendar> => listCalendar({ db, clock: systemClock });
+export const getCurrentCalendar = (playerId: string): Promise<CalendarOutcome> =>
+  listCalendar({ db, clock: systemClock }, playerId);
