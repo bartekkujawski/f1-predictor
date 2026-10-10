@@ -8,20 +8,21 @@ export type LeagueDependencies = { db: Database; appAdminEmails: readonly string
 
 export type MembershipDependencies = { db: Database };
 
-export type LeagueInvite = { name: string; joinCode: string };
+// The League as the App Admin sees it: its name and the Join Code to send to friends.
+export type LeagueJoinCode = { name: string; joinCode: string };
 
 export type CreateLeagueOutcome =
   | { status: "refused" }
   | { status: "invalid-name" }
-  | { status: "created"; league: LeagueInvite }
-  | { status: "already-created"; league: LeagueInvite };
+  | { status: "created"; league: LeagueJoinCode }
+  | { status: "already-created"; league: LeagueJoinCode };
 
 // What a Member sees of their League.
 export type MemberLeague = { name: string };
 
 export type JoinLeagueOutcome = { status: "invalid-code" } | { status: "joined"; league: MemberLeague };
 
-export type LeagueInviteOutcome = { status: "refused" } | { status: "none" } | { status: "found"; league: LeagueInvite };
+export type LeagueJoinCodeOutcome = { status: "refused" } | { status: "none" } | { status: "found"; league: LeagueJoinCode };
 
 // Letters and digits that cannot be mistaken for each other when the code is typed by hand:
 // no 0/O and no 1/I/L.
@@ -33,7 +34,7 @@ const generateJoinCode = (): string =>
   Array.from({ length: JOIN_CODE_LENGTH }, () => JOIN_CODE_ALPHABET[randomInt(JOIN_CODE_ALPHABET.length)]).join("");
 
 // The single League of Part 1, or undefined before the App Admin creates it.
-const findLeague = async (db: Database): Promise<LeagueInvite | undefined> => {
+const findLeague = async (db: Database): Promise<LeagueJoinCode | undefined> => {
   const [found] = await db.select({ name: league.name, joinCode: league.joinCode }).from(league).limit(1);
   return found;
 };
@@ -63,10 +64,10 @@ export const createLeague = async (
 };
 
 // The Join Code is the key to the League, so only the App Admin sees it and sends it on.
-export const getLeagueInvite = async (
+export const getLeagueJoinCode = async (
   { db, appAdminEmails }: LeagueDependencies,
   playerId: string,
-): Promise<LeagueInviteOutcome> => {
+): Promise<LeagueJoinCodeOutcome> => {
   if (!(await isAppAdmin(db, appAdminEmails, playerId))) {
     return { status: "refused" };
   }

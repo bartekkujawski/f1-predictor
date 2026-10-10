@@ -5,12 +5,10 @@ import { redirect } from "next/navigation";
 import { appAdminEmails } from "../app-admin/signed-in-app-admin";
 import { getSignedInPlayer } from "../auth/signed-in-player";
 import { db } from "../db/database";
-import { joinCurrentLeague } from "./current-league";
+import { INVALID_JOIN_CODE_MESSAGE, joinCurrentLeague } from "./current-league";
 import { createLeague } from "./league";
 
 export type LeagueFormReport = { message: string } | null;
-
-const INVALID_JOIN_CODE_MESSAGE = "This Join Code does not match any League. Check it, or ask for a new invite.";
 
 // Behind the App Admin's create form. The use-case decides whether the Player may create it.
 export const createLeagueFromForm = async (_previous: LeagueFormReport, form: FormData): Promise<LeagueFormReport> => {

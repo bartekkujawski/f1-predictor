@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { league, member, player } from "../db/schema";
 import { createTestDatabase } from "../db/test-database";
-import { createLeague, findMemberLeague, getLeagueInvite, joinLeague } from "./league";
+import { createLeague, findMemberLeague, getLeagueJoinCode, joinLeague } from "./league";
 
 const appAdmin = { id: "player-admin", name: "Bartek", email: "admin@example.com", nickname: "Bartek" };
 const ania = { id: "player-ania", name: "Anna Nowak", email: "ania@example.com", nickname: "Ania" };
@@ -64,25 +64,25 @@ describe("createLeague", () => {
   });
 });
 
-describe("getLeagueInvite", () => {
+describe("getLeagueJoinCode", () => {
   it("shows the App Admin the League's name and Join Code", async () => {
     const { dependencies } = await setUp();
     const created = await createdLeague(dependencies);
 
-    expect(await getLeagueInvite(dependencies, appAdmin.id)).toEqual({ status: "found", league: created });
+    expect(await getLeagueJoinCode(dependencies, appAdmin.id)).toEqual({ status: "found", league: created });
   });
 
   it("tells the App Admin when the League has not been created yet", async () => {
     const { dependencies } = await setUp();
 
-    expect(await getLeagueInvite(dependencies, appAdmin.id)).toEqual({ status: "none" });
+    expect(await getLeagueJoinCode(dependencies, appAdmin.id)).toEqual({ status: "none" });
   });
 
   it("refuses a Player who is not the App Admin", async () => {
     const { dependencies } = await setUp();
     await createdLeague(dependencies);
 
-    expect(await getLeagueInvite(dependencies, ania.id)).toEqual({ status: "refused" });
+    expect(await getLeagueJoinCode(dependencies, ania.id)).toEqual({ status: "refused" });
   });
 });
 

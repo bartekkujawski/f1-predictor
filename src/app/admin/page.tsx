@@ -3,32 +3,39 @@ import { isPlayerAppAdmin } from "../../app-admin/signed-in-app-admin";
 import { getSignedInPlayer } from "../../auth/signed-in-player";
 import { CopyButton } from "../../league/copy-button";
 import { CreateLeagueForm } from "../../league/create-league-form";
-import { getCurrentLeagueInvite, inviteLink } from "../../league/current-league";
+import { getCurrentLeagueJoinCode, inviteLink } from "../../league/current-league";
+import type { LeagueJoinCode } from "../../league/league";
 import { RefreshForm } from "../../refresh/refresh-form";
+
+const LeagueJoinCodeView = ({ league }: { league: LeagueJoinCode }) => {
+  const link = inviteLink(league.joinCode);
+  return (
+    <>
+      <p>{league.name}</p>
+      <p>
+        Join Code: <code>{league.joinCode}</code>
+      </p>
+      <p>
+        Invite link: <code>{link}</code> <CopyButton text={link} />
+      </p>
+    </>
+  );
+};
 
 export default async function AdminPage() {
   const player = await getSignedInPlayer();
   if (!player || !(await isPlayerAppAdmin(player.id))) {
     notFound();
   }
-  const invite = await getCurrentLeagueInvite(player.id);
+  const found = await getCurrentLeagueJoinCode(player.id);
 
   return (
     <main>
       <h1>App Admin</h1>
       <section>
         <h2>League</h2>
-        {invite.status === "found" ? (
-          <>
-            <p>{invite.league.name}</p>
-            <p>
-              Join Code: <code>{invite.league.joinCode}</code>
-            </p>
-            <p>
-              Invite link: <code>{inviteLink(invite.league.joinCode)}</code>{" "}
-              <CopyButton text={inviteLink(invite.league.joinCode)} />
-            </p>
-          </>
+        {found.status === "found" ? (
+          <LeagueJoinCodeView league={found.league} />
         ) : (
           <CreateLeagueForm />
         )}

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { signInWithGoogle } from "../../../auth/actions";
 import { getSignedInPlayer } from "../../../auth/signed-in-player";
-import { joinCurrentLeague } from "../../../league/current-league";
+import { INVALID_JOIN_CODE_MESSAGE, joinCurrentLeague } from "../../../league/current-league";
 import { JoinForm } from "../../../league/join-form";
 
 // The invite link. Opening it joins the League, so it works in one click. Joining while the page
@@ -32,7 +32,7 @@ export default async function JoinPage({ params }: PageProps<"/join/[code]">) {
   return (
     <main>
       <h1>Join the League</h1>
-      <p role="alert">This invite link does not match any League. Check it, or ask for a new invite.</p>
+      <p role="alert">{INVALID_JOIN_CODE_MESSAGE}</p>
       <JoinForm />
     </main>
   );
