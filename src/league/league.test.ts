@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { league, player } from "../db/schema";
+import { league, member, player } from "../db/schema";
 import { createTestDatabase } from "../db/test-database";
-import { createLeague, getLeagueInvite } from "./league";
+import { createLeague, findMemberLeague, getLeagueInvite, joinLeague } from "./league";
 
 const appAdmin = { id: "player-admin", name: "Bartek", email: "admin@example.com", nickname: "Bartek" };
 const ania = { id: "player-ania", name: "Anna Nowak", email: "ania@example.com", nickname: "Ania" };
@@ -74,5 +74,47 @@ describe("getLeagueInvite", () => {
     await createdLeague(dependencies);
 
     expect(await getLeagueInvite(dependencies, ania.id)).toEqual({ status: "refused" });
+  });
+});
+
+describe("joinLeague", () => {
+  it("makes the Player a Member of the League whose Join Code they give", async () => {
+    const { dependencies } = await setUp();
+    const { joinCode } = await createdLeague(dependencies);
+
+    const outcome = await joinLeague(dependencies, ania.id, joinCode);
+
+    expect(outcome).toEqual({ status: "joined", league: { name: "Friends League" } });
+    expect(await findMemberLeague(dependencies, ania.id)).toEqual({ name: "Friends League" });
+  });
+
+  it("refuses a Join Code that belongs to no League, and the Player stays outside", async () => {
+    const { dependencies } = await setUp();
+    await createdLeague(dependencies);
+
+    const outcome = await joinLeague(dependencies, ania.id, "NOSUCHCD");
+
+    expect(outcome).toEqual({ status: "invalid-code" });
+    expect(await findMemberLeague(dependencies, ania.id)).toBeNull();
+  });
+
+  it("has no effect when a Member joins again: no error and no second Member", async () => {
+    const { db, dependencies } = await setUp();
+    const { joinCode } = await createdLeague(dependencies);
+    await joinLeague(dependencies, ania.id, joinCode);
+
+    const outcome = await joinLeague(dependencies, ania.id, joinCode);
+
+    expect(outcome).toEqual({ status: "joined", league: { name: "Friends League" } });
+    expect(await db.select().from(member)).toHaveLength(1);
+  });
+
+  it("accepts a Join Code typed by hand in lowercase, with spaces around it", async () => {
+    const { dependencies } = await setUp();
+    const { joinCode } = await createdLeague(dependencies);
+
+    const outcome = await joinLeague(dependencies, ania.id, `  ${joinCode.toLowerCase()} `);
+
+    expect(outcome.status).toBe("joined");
   });
 });
