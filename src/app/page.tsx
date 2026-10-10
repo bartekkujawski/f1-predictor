@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { isPlayerAppAdmin } from "../app-admin/signed-in-app-admin";
-import { signInWithGoogle, signOut } from "../auth/actions";
+import { signOut } from "../auth/actions";
+import { SignInWithGoogle } from "../auth/sign-in-with-google";
 import { getSignedInPlayer } from "../auth/signed-in-player";
 import { CalendarView } from "../calendar/calendar-view";
 import { getCurrentCalendar } from "../calendar/current-calendar";
@@ -14,9 +15,7 @@ export default async function HomePage() {
       <main>
         <h1>F1 Predictor</h1>
         <p>Predict the Top 10 of every F1 Session with your League.</p>
-        <form action={signInWithGoogle.bind(null, "/")}>
-          <button type="submit">Sign in with Google</button>
-        </form>
+        <SignInWithGoogle returnTo="/" />
       </main>
     );
   }

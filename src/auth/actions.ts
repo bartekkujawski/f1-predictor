@@ -11,8 +11,7 @@ import { auth } from "./auth";
 // ("//host" and "/\\host" are other sites to a browser).
 const isPathOnThisSite = (path: string): boolean => /^\/(?![/\\])/.test(path);
 
-// Bind it to the page to come back to after Google, e.g. the invite link the Player opened:
-// signInWithGoogle.bind(null, "/join/CODE").
+// Bound by SignInWithGoogle to the page to come back to after Google.
 export const signInWithGoogle = async (returnTo: string) => {
   const callbackURL = isPathOnThisSite(returnTo) ? returnTo : "/";
   const { url } = await auth.api.signInSocial({ body: { provider: "google", callbackURL } });
