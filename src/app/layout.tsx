@@ -9,7 +9,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <footer>
+          <p>
+            Schedule and results from the <a href="https://github.com/jolpica/jolpica-f1">Jolpica F1 API</a>,
+            licensed under{" "}
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.
+          </p>
+        </footer>
+      </body>
     </html>
   );
 }
