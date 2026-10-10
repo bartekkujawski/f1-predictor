@@ -53,6 +53,15 @@ describe("createLeague", () => {
     expect(second).toEqual({ status: "already-created", league: first });
     expect(await db.select().from(league)).toHaveLength(1);
   });
+
+  it("refuses a blank name, and creates nothing", async () => {
+    const { db, dependencies } = await setUp();
+
+    const outcome = await createLeague(dependencies, appAdmin.id, "   ");
+
+    expect(outcome).toEqual({ status: "invalid-name" });
+    expect(await db.select().from(league)).toEqual([]);
+  });
 });
 
 describe("getLeagueInvite", () => {

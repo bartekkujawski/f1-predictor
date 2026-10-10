@@ -12,6 +12,7 @@ export type LeagueInvite = { name: string; joinCode: string };
 
 export type CreateLeagueOutcome =
   | { status: "refused" }
+  | { status: "invalid-name" }
   | { status: "created"; league: LeagueInvite }
   | { status: "already-created"; league: LeagueInvite };
 
@@ -50,9 +51,13 @@ export const createLeague = async (
   if (existing) {
     return { status: "already-created", league: existing };
   }
+  const trimmedName = name.trim();
+  if (trimmedName === "") {
+    return { status: "invalid-name" };
+  }
   const [created] = await db
     .insert(league)
-    .values({ name, joinCode: generateJoinCode() })
+    .values({ name: trimmedName, joinCode: generateJoinCode() })
     .returning({ name: league.name, joinCode: league.joinCode });
   return { status: "created", league: created };
 };
