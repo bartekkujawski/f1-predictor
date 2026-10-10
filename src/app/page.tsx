@@ -4,7 +4,6 @@ import { signInWithGoogle, signOut } from "../auth/actions";
 import { getSignedInPlayer } from "../auth/signed-in-player";
 import { CalendarView } from "../calendar/calendar-view";
 import { getCurrentCalendar } from "../calendar/current-calendar";
-import { findCurrentMemberLeague } from "../league/current-league";
 import { JoinForm } from "../league/join-form";
 
 export default async function HomePage() {
@@ -22,11 +21,7 @@ export default async function HomePage() {
     );
   }
 
-  const [memberLeague, calendar, isAppAdmin] = await Promise.all([
-    findCurrentMemberLeague(player.id),
-    getCurrentCalendar(),
-    isPlayerAppAdmin(player.id),
-  ]);
+  const [calendarOutcome, isAppAdmin] = await Promise.all([getCurrentCalendar(player.id), isPlayerAppAdmin(player.id)]);
 
   return (
     <main>
@@ -36,8 +31,8 @@ export default async function HomePage() {
         <button type="submit">Sign out</button>
       </form>
       {isAppAdmin && <Link href="/admin">App Admin</Link>}
-      {memberLeague ? (
-        <CalendarView calendar={calendar} />
+      {calendarOutcome.status === "listed" ? (
+        <CalendarView calendar={calendarOutcome.calendar} />
       ) : (
         <section>
           <h2>Join the League first</h2>

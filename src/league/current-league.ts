@@ -2,19 +2,14 @@ import { appAdminEmails } from "../app-admin/signed-in-app-admin";
 import { db } from "../db/database";
 import { requireEnv } from "../env";
 import {
-  findMemberLeague,
   getLeagueJoinCode,
   joinLeague,
   type JoinLeagueOutcome,
   type LeagueJoinCodeOutcome,
-  type MemberLeague,
 } from "./league";
 
 export const getCurrentLeagueJoinCode = (playerId: string): Promise<LeagueJoinCodeOutcome> =>
   getLeagueJoinCode({ db, appAdminEmails }, playerId);
-
-export const findCurrentMemberLeague = (playerId: string): Promise<MemberLeague | null> =>
-  findMemberLeague({ db }, playerId);
 
 export const joinCurrentLeague = (playerId: string, joinCode: string): Promise<JoinLeagueOutcome> =>
   joinLeague({ db }, playerId, joinCode);

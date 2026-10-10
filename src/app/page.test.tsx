@@ -4,16 +4,14 @@ import { isPlayerAppAdmin } from "../app-admin/signed-in-app-admin";
 import { getSignedInPlayer } from "../auth/signed-in-player";
 import { getCurrentCalendar } from "../calendar/current-calendar";
 import type { Calendar } from "../calendar/list-calendar";
-import { findCurrentMemberLeague } from "../league/current-league";
 import HomePage from "./page";
 
-// The page reads the session, the calendar, the League and the App Admin role through these modules, which
+// The page reads the session, the calendar and the App Admin role through these modules, which
 // need a real request and database. Here the test decides what they answer.
 vi.mock("../auth/signed-in-player", () => ({ getSignedInPlayer: vi.fn() }));
 vi.mock("../auth/actions", () => ({ signInWithGoogle: vi.fn(), signOut: vi.fn() }));
 vi.mock("../calendar/current-calendar", () => ({ getCurrentCalendar: vi.fn() }));
 vi.mock("../app-admin/signed-in-app-admin", () => ({ isPlayerAppAdmin: vi.fn() }));
-vi.mock("../league/current-league", () => ({ findCurrentMemberLeague: vi.fn() }));
 vi.mock("../league/actions", () => ({ joinFromForm: vi.fn() }));
 
 const ania = { id: "player-ania", nickname: "Anna Nowak" };
@@ -54,9 +52,8 @@ const renderHomePage = async (): Promise<string> => renderToStaticMarkup(await H
 
 describe("HomePage", () => {
   beforeEach(() => {
-    vi.mocked(getCurrentCalendar).mockResolvedValue(calendar);
+    vi.mocked(getCurrentCalendar).mockResolvedValue({ status: "listed", calendar });
     vi.mocked(isPlayerAppAdmin).mockResolvedValue(false);
-    vi.mocked(findCurrentMemberLeague).mockResolvedValue({ name: "Friends League" });
   });
 
   it("renders the app name as the main heading", async () => {
@@ -98,7 +95,7 @@ describe("HomePage", () => {
 
   it("asks a Player who is not a Member to join first, instead of showing the calendar", async () => {
     vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
-    vi.mocked(findCurrentMemberLeague).mockResolvedValue(null);
+    vi.mocked(getCurrentCalendar).mockResolvedValue({ status: "not-a-member" });
 
     const html = await renderHomePage();
 

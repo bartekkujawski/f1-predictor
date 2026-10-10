@@ -1,7 +1,7 @@
 import { randomInt } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { isAppAdmin } from "../app-admin/app-admin";
 import type { Database } from "../db/database";
-import { eq } from "drizzle-orm";
 import { league, member } from "../db/schema";
 
 export type LeagueDependencies = { db: Database; appAdminEmails: readonly string[] };

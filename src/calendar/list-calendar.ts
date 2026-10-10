@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
+import { findMemberLeague } from "../league/league";
 
 export type SessionState = "open" | "locked";
 
@@ -21,10 +22,16 @@ export type Calendar = {
   nextOpenRound: number | null;
 };
 
+export type CalendarOutcome = { status: "not-a-member" } | { status: "listed"; calendar: Calendar };
+
 export type CalendarDependencies = { db: Database; clock: Clock };
 
 // The current Season's Rounds and Sessions, each Session open or locked according to the Clock.
-export const listCalendar = async ({ db, clock }: CalendarDependencies): Promise<Calendar> => {
+// Only for Members: a Player who has not joined the League is asked to join first.
+export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId: string): Promise<CalendarOutcome> => {
+  if (!(await findMemberLeague({ db }, playerId))) {
+    return { status: "not-a-member" };
+  }
   const now = clock.now();
   const season = now.getUTCFullYear();
 
@@ -55,5 +62,5 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies): Promise
     calendarRound.sessions.some((calendarSession) => calendarSession.state === "open"),
   );
 
-  return { season, rounds, nextOpenRound: nextOpen?.number ?? null };
+  return { status: "listed", calendar: { season, rounds, nextOpenRound: nextOpen?.number ?? null } };
 };
