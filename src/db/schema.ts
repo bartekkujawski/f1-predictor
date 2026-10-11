@@ -160,8 +160,7 @@ export const prediction = pgTable(
       .notNull()
       .references(() => session.id, { onDelete: "cascade" }),
     // The Picks in order, as Regular Drivers' driver_id; index 0 is P1. An array rather than a
-    // table of Picks, so an edit is one atomic upsert: Neon over HTTP has no transactions, and a
-    // half-replaced Prediction must never be stored.
+    // table of Picks, so an edit is one atomic upsert (ADR-0009).
     picks: text("picks").array().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
   },
