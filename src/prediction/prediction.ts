@@ -4,29 +4,29 @@ import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { prediction, regularDriver, round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
+import type { RegularDriver } from "../results-source/results-source";
+import { type Prediction, TOP_10_SIZE } from "../scoring/session-score";
 
 export type PredictionDependencies = { db: Database; clock: Clock };
 
-// A Regular Driver as offered in the driver list.
-export type DriverChoice = { driverId: string; code: string; name: string };
-
-export type MySession = {
+// A Session of the Round, with the Player's own Prediction for it.
+export type RoundSession = {
   kind: SessionKind;
   locksAt: Date;
   state: SessionState;
-  // The saved Picks as driver_id, P1 first, or null when the Player has no Prediction yet.
-  picks: string[] | null;
+  // Null when the Player has no Prediction for this Session yet.
+  prediction: Prediction | null;
 };
 
 // A Round as the Player predicts it: their own Predictions and the drivers they may pick.
-export type RoundPredictions = { number: number; name: string; sessions: MySession[]; regularDrivers: DriverChoice[] };
+export type RoundPredictions = { number: number; name: string; sessions: RoundSession[]; regularDrivers: RegularDriver[] };
 
-export type MyPredictionsOutcome =
+export type PlayerPredictionsOutcome =
   | { status: "not-a-member" }
   | { status: "no-such-round" }
   | { status: "found"; round: RoundPredictions };
 
-export type PredictionInput = { round: number; kind: SessionKind; picks: readonly string[] };
+export type PredictionInput = { round: number; kind: SessionKind; picks: Prediction };
 
 // Why a Prediction cannot be saved. Each one breaks "ten different Regular Drivers in order".
 export type InvalidPredictionReason = "not-ten-picks" | "duplicate-driver" | "not-a-regular-driver";
@@ -38,15 +38,13 @@ export type SavePredictionOutcome =
   | { status: "invalid"; reason: InvalidPredictionReason }
   | { status: "saved" };
 
-// Ten Picks in a Prediction (docs/rules.md: incomplete Predictions cannot be saved).
-const PICKS_PER_PREDICTION = 10;
-
 const checkPicks = async (
   db: Database,
   season: number,
-  picks: readonly string[],
+  picks: Prediction,
 ): Promise<InvalidPredictionReason | null> => {
-  if (picks.length !== PICKS_PER_PREDICTION) {
+  // docs/rules.md: incomplete Predictions cannot be saved.
+  if (picks.length !== TOP_10_SIZE) {
     return "not-ten-picks";
   }
   if (new Set(picks).size !== picks.length) {
@@ -60,11 +58,11 @@ const checkPicks = async (
 };
 
 // The Player's own Predictions for one Round of the current Season. Only for Members.
-export const getMyPredictions = async (
+export const getPlayerPredictions = async (
   { db, clock }: PredictionDependencies,
   playerId: string,
   roundNumber: number,
-): Promise<MyPredictionsOutcome> => {
+): Promise<PlayerPredictionsOutcome> => {
   if (!(await findMemberLeague({ db }, playerId))) {
     return { status: "not-a-member" };
   }
@@ -99,7 +97,12 @@ export const getMyPredictions = async (
     round: {
       number: roundNumber,
       name: rows[0].name,
-      sessions: rows.map(({ kind, locksAt, picks }) => ({ kind, locksAt, state: sessionStateAt(locksAt, now), picks })),
+      sessions: rows.map(({ kind, locksAt, picks }) => ({
+        kind,
+        locksAt,
+        state: sessionStateAt(locksAt, now),
+        prediction: picks,
+      })),
       regularDrivers: drivers,
     },
   };

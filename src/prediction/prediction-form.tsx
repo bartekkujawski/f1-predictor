@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { savePredictionFromForm } from "./actions";
-import type { DriverChoice, MySession } from "./prediction";
+import type { RegularDriver } from "../results-source/results-source";
+import type { RoundSession } from "./prediction";
 
 const POSITIONS = Array.from({ length: 10 }, (_, index) => index + 1);
 
@@ -14,11 +15,11 @@ export const PredictionForm = ({
   regularDrivers,
 }: {
   round: number;
-  session: MySession;
-  regularDrivers: DriverChoice[];
+  session: RoundSession;
+  regularDrivers: RegularDriver[];
 }) => {
   const [report, formAction, isPending] = useActionState(savePredictionFromForm, null);
-  const [picks, setPicks] = useState<string[]>(() => POSITIONS.map((position) => session.picks?.[position - 1] ?? ""));
+  const [picks, setPicks] = useState<string[]>(() => POSITIONS.map((position) => session.prediction?.[position - 1] ?? ""));
 
   const choose = (index: number, driverId: string) =>
     setPicks((current) => current.map((pick, other) => (other === index ? driverId : pick)));

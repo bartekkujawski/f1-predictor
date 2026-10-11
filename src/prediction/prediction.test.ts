@@ -7,7 +7,7 @@ import { createLeague, joinLeague } from "../league/league";
 import { refresh } from "../refresh/refresh";
 import { createFakeResultsSource } from "../results-source/fake-results-source";
 import type { RegularDriver, ScheduledRound } from "../results-source/results-source";
-import { getMyPredictions, type RoundPredictions, savePrediction } from "./prediction";
+import { getPlayerPredictions, type RoundPredictions, savePrediction } from "./prediction";
 
 const bahrain: ScheduledRound = {
   season: 2026,
@@ -71,15 +71,15 @@ const at = (iso: string) => fixedClock(new Date(iso));
 
 // Round 1 as Ania sees it at the given moment.
 const aniasRound = async (db: Database, iso: string): Promise<RoundPredictions> => {
-  const outcome = await getMyPredictions({ db, clock: at(iso) }, ania.id, 1);
+  const outcome = await getPlayerPredictions({ db, clock: at(iso) }, ania.id, 1);
   if (outcome.status !== "found") {
     throw new Error(`Expected Round 1 to be found, got ${outcome.status}.`);
   }
   return outcome.round;
 };
 
-const picksOf = (round: RoundPredictions, kind: "Qualifying" | "Race") =>
-  round.sessions.find((session) => session.kind === kind)?.picks;
+const predictionOf = (round: RoundPredictions, kind: "Qualifying" | "Race") =>
+  round.sessions.find((session) => session.kind === kind)?.prediction;
 
 describe("savePrediction", () => {
   it("saves a Member's Qualifying Prediction, which they see when they come back", async () => {
@@ -92,7 +92,7 @@ describe("savePrediction", () => {
     });
 
     expect(outcome).toEqual({ status: "saved" });
-    expect(picksOf(await aniasRound(db, BEFORE_LOCK), "Qualifying")).toEqual(topTen);
+    expect(predictionOf(await aniasRound(db, BEFORE_LOCK), "Qualifying")).toEqual(topTen);
   });
 
   it("replaces the Prediction when the Member edits it, and keeps the other Session's Prediction as it was", async () => {
@@ -105,8 +105,8 @@ describe("savePrediction", () => {
 
     expect(outcome).toEqual({ status: "saved" });
     const round = await aniasRound(db, BEFORE_LOCK);
-    expect(picksOf(round, "Race")).toEqual(otherTopTen);
-    expect(picksOf(round, "Qualifying")).toEqual(topTen);
+    expect(predictionOf(round, "Race")).toEqual(otherTopTen);
+    expect(predictionOf(round, "Qualifying")).toEqual(topTen);
   });
 
   it("accepts a save one second before the Lock", async () => {
@@ -133,7 +133,7 @@ describe("savePrediction", () => {
     });
 
     expect(outcome).toEqual({ status: "locked" });
-    expect(picksOf(await aniasRound(db, "2026-03-07T15:00:00Z"), "Race")).toEqual(topTen);
+    expect(predictionOf(await aniasRound(db, "2026-03-07T15:00:00Z"), "Race")).toEqual(topTen);
   });
 
   it.each([
@@ -153,7 +153,7 @@ describe("savePrediction", () => {
     const outcome = await savePrediction(dependencies, ania.id, { round: 1, kind: "Qualifying", picks });
 
     expect(outcome).toEqual({ status: "invalid", reason });
-    expect(picksOf(await aniasRound(db, BEFORE_LOCK), "Qualifying")).toEqual(topTen);
+    expect(predictionOf(await aniasRound(db, BEFORE_LOCK), "Qualifying")).toEqual(topTen);
   });
 
   it("refuses a driver who was a Regular Driver only in an earlier Season", async () => {
@@ -186,7 +186,7 @@ describe("savePrediction", () => {
     const outcome = await savePrediction(dependencies, outsider.id, { round: 1, kind: "Race", picks: topTen });
 
     expect(outcome).toEqual({ status: "not-a-member" });
-    expect(await getMyPredictions(dependencies, outsider.id, 1)).toEqual({ status: "not-a-member" });
+    expect(await getPlayerPredictions(dependencies, outsider.id, 1)).toEqual({ status: "not-a-member" });
   });
 
   it("finds no Session in a Round that is not in the current Season's calendar", async () => {
@@ -196,11 +196,11 @@ describe("savePrediction", () => {
     const outcome = await savePrediction(dependencies, ania.id, { round: 99, kind: "Race", picks: topTen });
 
     expect(outcome).toEqual({ status: "no-such-session" });
-    expect(await getMyPredictions(dependencies, ania.id, 99)).toEqual({ status: "no-such-round" });
+    expect(await getPlayerPredictions(dependencies, ania.id, 99)).toEqual({ status: "no-such-round" });
   });
 });
 
-describe("getMyPredictions", () => {
+describe("getPlayerPredictions", () => {
   it("shows a Member the Round's open Sessions without Predictions, and the Season's Regular Drivers to pick from", async () => {
     const db = await syncedDatabase();
 
@@ -210,8 +210,8 @@ describe("getMyPredictions", () => {
       number: 1,
       name: "Bahrain Grand Prix",
       sessions: [
-        { kind: "Qualifying", locksAt: bahrain.qualifyingStartsAt, state: "open", picks: null },
-        { kind: "Race", locksAt: bahrain.qualifyingStartsAt, state: "open", picks: null },
+        { kind: "Qualifying", locksAt: bahrain.qualifyingStartsAt, state: "open", prediction: null },
+        { kind: "Race", locksAt: bahrain.qualifyingStartsAt, state: "open", prediction: null },
       ],
       regularDrivers: expect.arrayContaining(regularDrivers),
     });
@@ -224,9 +224,9 @@ describe("getMyPredictions", () => {
 
     const round = await aniasRound(db, "2026-03-07T15:00:00Z");
 
-    expect(round.sessions.map(({ kind, state, picks }) => ({ kind, state, picks }))).toEqual([
-      { kind: "Qualifying", state: "locked", picks: null },
-      { kind: "Race", state: "locked", picks: topTen },
+    expect(round.sessions.map(({ kind, state, prediction }) => ({ kind, state, prediction }))).toEqual([
+      { kind: "Qualifying", state: "locked", prediction: null },
+      { kind: "Race", state: "locked", prediction: topTen },
     ]);
   });
 
@@ -236,6 +236,6 @@ describe("getMyPredictions", () => {
 
     const round = await aniasRound(db, BEFORE_LOCK);
 
-    expect(picksOf(round, "Race")).toBeNull();
+    expect(predictionOf(round, "Race")).toBeNull();
   });
 });

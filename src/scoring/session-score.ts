@@ -14,7 +14,7 @@ export type Prediction = readonly RegularDriverId[];
 export type SessionScore = { points: number; exactHits: number };
 
 // Positions that score. Also the length of a Prediction.
-const TOP_10_SIZE = 10;
+export const TOP_10_SIZE = 10;
 
 const BASE_POINTS = 5;
 
