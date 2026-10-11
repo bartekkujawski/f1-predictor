@@ -3,11 +3,10 @@ import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
-
-export type SessionState = "open" | "locked";
+import { type SessionKind, type SessionState, sessionStateAt } from "./session";
 
 export type CalendarSession = {
-  kind: (typeof session.kind.enumValues)[number];
+  kind: SessionKind;
   startsAt: Date;
   locksAt: Date;
   state: SessionState;
@@ -53,9 +52,7 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId
     if (rounds.at(-1)?.number !== number) {
       rounds.push({ number, name, sessions: [] });
     }
-    // Locked at the Lock itself, not one moment later: a save at the Lock is already refused.
-    const state: SessionState = now < locksAt ? "open" : "locked";
-    rounds.at(-1)!.sessions.push({ kind, startsAt, locksAt, state });
+    rounds.at(-1)!.sessions.push({ kind, startsAt, locksAt, state: sessionStateAt(locksAt, now) });
   }
 
   const nextOpen = rounds.find((calendarRound) =>

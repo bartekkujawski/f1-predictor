@@ -104,12 +104,12 @@ describe("HomePage", () => {
     expect(html).not.toContain("Bahrain Grand Prix");
   });
 
-  it("highlights the next open Round", async () => {
+  it("highlights the next open Round and links to it", async () => {
     vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
 
     const html = await renderHomePage();
 
-    expect(html).toMatch(/aria-current="true"><h3>Round 2: Bahrain Grand Prix/);
+    expect(html).toMatch(/aria-current="true"><h3><a href="\/rounds\/2">Round 2: Bahrain Grand Prix/);
   });
 
   it("links to the App Admin page only for the App Admin", async () => {

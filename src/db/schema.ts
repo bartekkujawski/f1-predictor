@@ -1,4 +1,5 @@
-import { boolean, index, integer, pgEnum, pgTable, primaryKey, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, check, index, integer, pgEnum, pgTable, primaryKey, text, timestamp, unique } from "drizzle-orm/pg-core";
 
 // The tables Better Auth needs (ADR-0005). Its "user" model is our Player, so the table and
 // the foreign keys use the domain name. The column set follows the Better Auth core schema.
@@ -144,4 +145,27 @@ export const member = pgTable(
   },
   // One row per Player and League: joining twice cannot create a second Member.
   (table) => [primaryKey({ columns: [table.playerId, table.leagueId] })],
+);
+
+// A Player's Top 10 for one Session. It belongs to the Player, not to a Member, so one Prediction
+// counts in every League the Player plays in (ADR-0001).
+export const prediction = pgTable(
+  "prediction",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    playerId: text("player_id")
+      .notNull()
+      .references(() => player.id, { onDelete: "cascade" }),
+    sessionId: integer("session_id")
+      .notNull()
+      .references(() => session.id, { onDelete: "cascade" }),
+    // The Picks in order, as Regular Drivers' driver_id; index 0 is P1. An array rather than a
+    // table of Picks, so an edit is one atomic upsert (ADR-0009).
+    picks: text("picks").array().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    unique("prediction_player_id_session_id_unique").on(table.playerId, table.sessionId),
+    check("prediction_ten_picks", sql`cardinality(${table.picks}) = 10`),
+  ],
 );
