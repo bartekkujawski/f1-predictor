@@ -6,6 +6,9 @@ import { findMemberLeague } from "../league/league";
 
 export type SessionState = "open" | "locked";
 
+// Locked at the Lock itself, not one moment later: a save at the Lock is already refused.
+export const sessionStateAt = (locksAt: Date, now: Date): SessionState => (now < locksAt ? "open" : "locked");
+
 export type CalendarSession = {
   kind: (typeof session.kind.enumValues)[number];
   startsAt: Date;
@@ -53,9 +56,7 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId
     if (rounds.at(-1)?.number !== number) {
       rounds.push({ number, name, sessions: [] });
     }
-    // Locked at the Lock itself, not one moment later: a save at the Lock is already refused.
-    const state: SessionState = now < locksAt ? "open" : "locked";
-    rounds.at(-1)!.sessions.push({ kind, startsAt, locksAt, state });
+    rounds.at(-1)!.sessions.push({ kind, startsAt, locksAt, state: sessionStateAt(locksAt, now) });
   }
 
   const nextOpen = rounds.find((calendarRound) =>
