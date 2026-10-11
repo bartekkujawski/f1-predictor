@@ -130,6 +130,10 @@ export const savePrediction = async (
     return { status: "no-such-session" };
   }
   // Checked against the Clock at the moment of saving, never against what the page showed.
+  // The write below does not check the Lock again. A save that arrives a few milliseconds before
+  // the Lock is accepted even if the upsert lands just after it. That is accepted on purpose: the
+  // Member was in time, and nobody can see other Predictions within those milliseconds. Closing
+  // the gap would need the Lock inside the upsert itself (INSERT ... SELECT, in raw SQL).
   if (sessionStateAt(found.locksAt, now) === "locked") {
     return { status: "locked" };
   }
