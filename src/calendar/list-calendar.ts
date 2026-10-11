@@ -3,14 +3,10 @@ import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
-
-export type SessionState = "open" | "locked";
-
-// Locked at the Lock itself, not one moment later: a save at the Lock is already refused.
-export const sessionStateAt = (locksAt: Date, now: Date): SessionState => (now < locksAt ? "open" : "locked");
+import { type SessionKind, type SessionState, sessionStateAt } from "./session";
 
 export type CalendarSession = {
-  kind: (typeof session.kind.enumValues)[number];
+  kind: SessionKind;
   startsAt: Date;
   locksAt: Date;
   state: SessionState;

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSignedInPlayer } from "../auth/signed-in-player";
-import { session } from "../db/schema";
+import { isSessionKind } from "../calendar/session";
 import { saveCurrentPrediction } from "./current-prediction";
 import type { InvalidPredictionReason } from "./prediction";
 
@@ -13,9 +13,6 @@ const INVALID_MESSAGES: Record<InvalidPredictionReason, string> = {
   "duplicate-driver": "Pick each driver only once.",
   "not-a-regular-driver": "Pick only drivers from the list.",
 };
-
-const isSessionKind = (value: string): value is (typeof session.kind.enumValues)[number] =>
-  (session.kind.enumValues as readonly string[]).includes(value);
 
 // Behind each Session's Top 10 form. The form is only input: the use-case checks membership,
 // the Lock and the Picks again, whatever the page showed.

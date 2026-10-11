@@ -1,13 +1,11 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { type SessionState, sessionStateAt } from "../calendar/list-calendar";
+import { type SessionKind, type SessionState, sessionStateAt } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { prediction, regularDriver, round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
 
 export type PredictionDependencies = { db: Database; clock: Clock };
-
-type SessionKind = (typeof session.kind.enumValues)[number];
 
 // A Regular Driver as offered in the driver list.
 export type DriverChoice = { driverId: string; code: string; name: string };
