@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Calendar, CalendarRound } from "./list-calendar";
 import { LocalTime } from "./local-time";
 
@@ -5,7 +6,9 @@ const RoundView = ({ round, isNextOpen }: { round: CalendarRound; isNextOpen: bo
   <li>
     <article aria-current={isNextOpen ? "true" : undefined}>
       <h3>
-        Round {round.number}: {round.name}
+        <Link href={`/rounds/${round.number}`}>
+          Round {round.number}: {round.name}
+        </Link>
         {isNextOpen && <strong> (next open Round)</strong>}
       </h3>
       <ul>
