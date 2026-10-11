@@ -156,6 +156,29 @@ describe("savePrediction", () => {
     expect(picksOf(await aniasRound(db, BEFORE_LOCK), "Qualifying")).toEqual(topTen);
   });
 
+  it("refuses a driver who was a Regular Driver only in an earlier Season", async () => {
+    const db = await syncedDatabase();
+    await refresh(
+      {
+        db,
+        resultsSource: createFakeResultsSource({
+          2025: { schedule: [], regularDrivers: [driver("bortoleto", "BOR", "Gabriel Bortoleto")] },
+        }),
+        clock: fixedClock(new Date("2025-06-01T00:00:00Z")),
+        appAdminEmails: [appAdmin.email],
+      },
+      appAdmin.id,
+    );
+
+    const outcome = await savePrediction({ db, clock: at(BEFORE_LOCK) }, ania.id, {
+      round: 1,
+      kind: "Race",
+      picks: [...topTen.slice(0, 9), "bortoleto"],
+    });
+
+    expect(outcome).toEqual({ status: "invalid", reason: "not-a-regular-driver" });
+  });
+
   it("refuses a Player who is not a Member of the League", async () => {
     const db = await syncedDatabase();
     const dependencies = { db, clock: at(BEFORE_LOCK) };
