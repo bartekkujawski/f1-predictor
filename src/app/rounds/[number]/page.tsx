@@ -4,6 +4,7 @@ import { getSignedInPlayer } from "../../../auth/signed-in-player";
 import { LocalTime } from "../../../calendar/local-time";
 import { getCurrentPlayerPredictions } from "../../../prediction/current-prediction";
 import type { RoundSession } from "../../../prediction/prediction";
+import { PicksList } from "../../../prediction/picks-list";
 import { PredictionForm } from "../../../prediction/prediction-form";
 import type { RegularDriver } from "../../../results-source/results-source";
 
@@ -11,14 +12,7 @@ const LockedSessionView = ({ session, regularDrivers }: { session: RoundSession;
   if (!session.prediction) {
     return <p>You have no Prediction for this Session, so you will score 0 for it.</p>;
   }
-  const nameOf = new Map(regularDrivers.map((driver) => [driver.driverId, `${driver.name} (${driver.code})`]));
-  return (
-    <ol>
-      {session.prediction.map((driverId) => (
-        <li key={driverId}>{nameOf.get(driverId) ?? driverId}</li>
-      ))}
-    </ol>
-  );
+  return <PicksList prediction={session.prediction} regularDrivers={regularDrivers} />;
 };
 
 // One Round, where a Member builds a Top 10 for each of its Sessions until the Lock.
