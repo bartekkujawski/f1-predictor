@@ -43,7 +43,9 @@ export default async function RoundPage({ params }: PageProps<"/rounds/[number]"
       </h1>
       {round.sessions.map((session) => (
         <section key={session.kind}>
-          <h2>{session.kind}</h2>
+          <h2>
+            <Link href={`/rounds/${round.number}/${session.kind}`}>{session.kind}</Link>
+          </h2>
           <p>
             {session.state === "open" ? "Locks" : "Locked"} <LocalTime iso={session.locksAt.toISOString()} />
           </p>
