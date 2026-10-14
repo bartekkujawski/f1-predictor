@@ -7,7 +7,7 @@ import { createLeague, joinLeague } from "../league/league";
 import { refresh } from "../refresh/refresh";
 import { createFakeResultsSource } from "../results-source/fake-results-source";
 import type { RegularDriver, ScheduledRound } from "../results-source/results-source";
-import { getPlayerPredictions, type RoundPredictions, savePrediction } from "./prediction";
+import { getPlayerPredictions, getSessionPredictions, type RoundPredictions, savePrediction } from "./prediction";
 
 const bahrain: ScheduledRound = {
   season: 2026,
@@ -237,5 +237,79 @@ describe("getPlayerPredictions", () => {
     const round = await aniasRound(db, BEFORE_LOCK);
 
     expect(predictionOf(round, "Race")).toBeNull();
+  });
+});
+
+describe("getSessionPredictions", () => {
+  it("shows the viewer only their own Prediction before the Lock, and nobody else's", async () => {
+    const db = await syncedDatabase();
+    const dependencies = { db, clock: at(BEFORE_LOCK) };
+    await savePrediction(dependencies, ania.id, { round: 1, kind: "Race", picks: topTen });
+    await savePrediction(dependencies, appAdmin.id, { round: 1, kind: "Race", picks: otherTopTen });
+
+    const outcome = await getSessionPredictions(dependencies, ania.id, 1, "Race");
+
+    // toEqual fails on any extra field, so the App Admin's Prediction is not in the response at all.
+    expect(outcome).toEqual({
+      status: "found",
+      session: {
+        round: { number: 1, name: "Bahrain Grand Prix" },
+        kind: "Race",
+        locksAt: bahrain.qualifyingStartsAt,
+        visible: { state: "open", own: topTen },
+        regularDrivers: expect.arrayContaining(regularDrivers),
+      },
+    });
+  });
+
+  it.each([
+    { moment: "exactly at the Lock", iso: "2026-03-07T15:00:00Z" },
+    { moment: "after the Lock", iso: "2026-03-08T18:00:00Z" },
+  ])("shows the viewer every Member's Prediction $moment", async ({ iso }) => {
+    const db = await syncedDatabase();
+    await savePrediction({ db, clock: at(BEFORE_LOCK) }, ania.id, { round: 1, kind: "Race", picks: topTen });
+    await savePrediction({ db, clock: at(BEFORE_LOCK) }, appAdmin.id, { round: 1, kind: "Race", picks: otherTopTen });
+
+    const outcome = await getSessionPredictions({ db, clock: at(iso) }, ania.id, 1, "Race");
+
+    expect(outcome.status === "found" && outcome.session.visible).toEqual({
+      state: "locked",
+      members: [
+        { nickname: "Ania", prediction: topTen },
+        { nickname: "Bartek", prediction: otherTopTen },
+      ],
+    });
+  });
+
+  it("lists a Member who did not predict a locked Session as having no Prediction", async () => {
+    const db = await syncedDatabase();
+    await savePrediction({ db, clock: at(BEFORE_LOCK) }, ania.id, { round: 1, kind: "Race", picks: topTen });
+
+    const outcome = await getSessionPredictions({ db, clock: at("2026-03-07T15:00:00Z") }, ania.id, 1, "Race");
+
+    expect(outcome.status === "found" && outcome.session.visible).toEqual({
+      state: "locked",
+      members: [
+        { nickname: "Ania", prediction: topTen },
+        { nickname: "Bartek", prediction: null },
+      ],
+    });
+  });
+
+  it("gives a Player who is not a Member nothing, even after the Lock", async () => {
+    const db = await syncedDatabase();
+    await savePrediction({ db, clock: at(BEFORE_LOCK) }, ania.id, { round: 1, kind: "Race", picks: topTen });
+
+    const outcome = await getSessionPredictions({ db, clock: at("2026-03-08T18:00:00Z") }, outsider.id, 1, "Race");
+
+    expect(outcome).toEqual({ status: "not-a-member" });
+  });
+
+  it("finds no Session in a Round that is not in the current Season's calendar", async () => {
+    const db = await syncedDatabase();
+
+    const outcome = await getSessionPredictions({ db, clock: at(BEFORE_LOCK) }, ania.id, 99, "Race");
+
+    expect(outcome).toEqual({ status: "no-such-session" });
   });
 });

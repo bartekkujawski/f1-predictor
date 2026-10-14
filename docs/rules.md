@@ -26,6 +26,8 @@ One ruleset applies to every League. Rules are not configurable per League.
 - Before Lock, a Player sees only their own Prediction.
 - From the Lock of a Session, everyone's Predictions for that Session are visible to League Members.
 - This is enforced on the server: other Players' Predictions are never sent to the client before Lock.
+- A locked Session lists every current Member, including those who joined after its Lock, who
+  appear without a Prediction (and score 0 for it, like anyone who did not predict).
 
 ## Scoring a Pick
 
