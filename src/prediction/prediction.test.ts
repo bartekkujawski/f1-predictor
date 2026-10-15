@@ -6,7 +6,7 @@ import { createTestDatabase } from "../db/test-database";
 import { createLeague, joinLeague } from "../league/league";
 import { refresh } from "../refresh/refresh";
 import { createFakeResultsSource } from "../results-source/fake-results-source";
-import type { RegularDriver, ScheduledRound } from "../results-source/results-source";
+import type { RaceResults, RegularDriver, ScheduledRound } from "../results-source/results-source";
 import { getPlayerPredictions, getSessionPredictions, type RoundPredictions, savePrediction } from "./prediction";
 
 const bahrain: ScheduledRound = {
@@ -258,6 +258,7 @@ describe("getSessionPredictions", () => {
         locksAt: bahrain.qualifyingStartsAt,
         visible: { state: "open", own: topTen },
         regularDrivers: expect.arrayContaining(regularDrivers),
+        top10: null,
       },
     });
   });
@@ -311,5 +312,51 @@ describe("getSessionPredictions", () => {
     const outcome = await getSessionPredictions({ db, clock: at(BEFORE_LOCK) }, ania.id, 99, "Race");
 
     expect(outcome).toEqual({ status: "no-such-session" });
+  });
+
+  describe("Top 10", () => {
+    const AFTER_RACE = "2026-03-08T18:00:00Z";
+
+    // Stores Round 1's results the way the App Admin's refresh does.
+    const storeResults = (db: Database, raceResults: RaceResults) =>
+      refresh(
+        {
+          db,
+          resultsSource: createFakeResultsSource({ 2026: { schedule: [bahrain], regularDrivers, raceResults: { 1: raceResults } } }),
+          clock: at(AFTER_RACE),
+          appAdminEmails: [appAdmin.email],
+        },
+        appAdmin.id,
+      );
+
+    const top10Of = async (db: Database, kind: "Qualifying" | "Race") => {
+      const outcome = await getSessionPredictions({ db, clock: at(AFTER_RACE) }, ania.id, 1, kind);
+      if (outcome.status !== "found") {
+        throw new Error(`Expected the Session to be found, got ${outcome.status}.`);
+      }
+      return outcome.session.top10;
+    };
+
+    it("has no Top 10 until results are stored", async () => {
+      const db = await syncedDatabase();
+
+      expect(await top10Of(db, "Race")).toBeNull();
+      expect(await top10Of(db, "Qualifying")).toBeNull();
+    });
+
+    it("shows positions 1–10 of the Race's Official Classification", async () => {
+      const db = await syncedDatabase();
+      await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
+
+      expect(await top10Of(db, "Race")).toEqual(driverIds.slice(0, 10));
+    });
+
+    it("shows the Starting Grid for Qualifying, with an empty slot kept empty", async () => {
+      const db = await syncedDatabase();
+      const grid = [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 11)];
+      await storeResults(db, { officialClassification: driverIds, startingGrid: grid });
+
+      expect(await top10Of(db, "Qualifying")).toEqual([...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)]);
+    });
   });
 });

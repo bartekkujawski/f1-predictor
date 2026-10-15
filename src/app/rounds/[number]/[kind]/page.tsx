@@ -5,6 +5,26 @@ import { isSessionKind } from "../../../../calendar/session";
 import { LocalTime } from "../../../../calendar/local-time";
 import { getCurrentSessionPredictions } from "../../../../prediction/current-prediction";
 import { PicksList } from "../../../../prediction/picks-list";
+import type { SessionPredictions } from "../../../../prediction/prediction";
+import { Top10List } from "../../../../prediction/top-10-list";
+
+// What the Session is scored against, once its results are in.
+const Top10View = ({ session }: { session: SessionPredictions }) => {
+  const isQualifying = session.kind === "Qualifying";
+  return (
+    <section>
+      <h2>{isQualifying ? "Starting Grid" : "Top 10"}</h2>
+      {session.top10 ? (
+        <Top10List top10={session.top10} regularDrivers={session.regularDrivers} />
+      ) : isQualifying ? (
+        // ADR-0008: Jolpica publishes the grid with the Race results.
+        <p>Qualifying is scored against the Starting Grid, which appears once the Race results are published.</p>
+      ) : (
+        <p>The results are not available yet.</p>
+      )}
+    </section>
+  );
+};
 
 // One Session's Predictions: the viewer's own until the Lock, every Member's from the Lock on.
 export default async function SessionPage({ params }: PageProps<"/rounds/[number]/[kind]">) {
@@ -50,6 +70,7 @@ export default async function SessionPage({ params }: PageProps<"/rounds/[number
           <p>
             Locked <LocalTime iso={session.locksAt.toISOString()} />.
           </p>
+          <Top10View session={session} />
           {/* Nicknames need not be unique, and the list never reorders, so the index is the key. */}
           {session.visible.members.map(({ nickname, prediction }, index) => (
             <section key={index}>
