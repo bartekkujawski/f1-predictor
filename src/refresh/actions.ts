@@ -7,9 +7,13 @@ import { getSignedInPlayer } from "../auth/signed-in-player";
 import { systemClock } from "../clock/clock";
 import { db } from "../db/database";
 import { createJolpicaResultsSource } from "../results-source/jolpica";
-import { refresh } from "./refresh";
+import { refresh, type SessionRef } from "./refresh";
 
-export type RefreshReport = { message: string } | null;
+// One line per part of the report.
+export type RefreshReport = { lines: string[] } | null;
+
+const listSessions = (sessions: SessionRef[]): string =>
+  sessions.length === 0 ? "none" : sessions.map(({ round, kind }) => `Round ${round} ${kind}`).join(", ");
 
 // Drizzle's message is the whole failed query; the database's own reason is in error.cause.
 const describeError = (error: unknown): string => {
@@ -23,7 +27,7 @@ const describeError = (error: unknown): string => {
 export const refreshFromJolpica = async (): Promise<RefreshReport> => {
   const player = await getSignedInPlayer();
   if (!player) {
-    return { message: "Sign in first." };
+    return { lines: ["Sign in first."] };
   }
   try {
     const outcome = await refresh(
@@ -31,13 +35,21 @@ export const refreshFromJolpica = async (): Promise<RefreshReport> => {
       player.id,
     );
     if (outcome.status === "refused") {
-      return { message: "Only the App Admin can refresh." };
+      return { lines: ["Only the App Admin can refresh."] };
     }
     revalidatePath("/");
-    const { season, rounds, regularDrivers } = outcome;
-    return { message: `Synced Season ${season}: ${rounds} Rounds and ${regularDrivers} Regular Drivers.` };
+    const { season, rounds, regularDrivers, updated, waiting, errors } = outcome;
+    return {
+      lines: [
+        `Synced Season ${season}: ${rounds} Rounds and ${regularDrivers} Regular Drivers.`,
+        `Results updated: ${listSessions(updated)}.`,
+        `Still waiting for results: ${listSessions(waiting)}.`,
+        // Jolpica may be down or rate-limiting; the App Admin can simply try again.
+        ...errors.map((error) => `Error: ${error}`),
+      ],
+    };
   } catch (error) {
-    // Jolpica may be down or rate-limiting; the App Admin can simply try again.
-    return { message: `Refresh failed: ${describeError(error)}` };
+    // A database failure; Jolpica's failures are in the report above.
+    return { lines: [`Refresh failed: ${describeError(error)}`] };
   }
 };

@@ -41,8 +41,11 @@ export default async function AdminPage() {
         )}
       </section>
       <section>
-        <h2>Calendar</h2>
-        <p>Sync the current Season&apos;s schedule and Regular Drivers from Jolpica.</p>
+        <h2>Calendar and results</h2>
+        <p>
+          Sync the current Season&apos;s schedule, Regular Drivers and results from Jolpica. Rounds that are
+          already final are left as they are.
+        </p>
         <RefreshForm />
       </section>
     </main>
