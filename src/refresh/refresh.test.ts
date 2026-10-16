@@ -148,6 +148,7 @@ describe("refresh", () => {
       rounds: 2,
       regularDrivers: 2,
       updated: [],
+      unchanged: [],
       waiting: [],
       errors: [],
     });
@@ -288,6 +289,36 @@ describe("refresh", () => {
         ],
         waiting: [],
         errors: [],
+      });
+    });
+
+    it("reports results that are the same as the stored ones as unchanged, and does not count them as updated", async () => {
+      const { dependencies } = await setUp(withResults({ 1: bahrainResults }));
+      const clock = fixedClock(AFTER_BAHRAIN);
+      await refresh({ ...dependencies, clock }, appAdmin.id);
+
+      const outcome = await refresh({ ...dependencies, clock }, appAdmin.id);
+
+      expect(outcome).toMatchObject({
+        updated: [],
+        unchanged: [
+          { round: 1, kind: "Qualifying" },
+          { round: 1, kind: "Race" },
+        ],
+      });
+    });
+
+    it("reports only the Session whose order a post-race penalty changed as updated", async () => {
+      const penalised: RaceResults = { ...bahrainResults, officialClassification: ["max_verstappen", "norris"] };
+      const { dependencies } = await setUp(withResults({ 1: bahrainResults }));
+      const clock = fixedClock(AFTER_BAHRAIN);
+      await refresh({ ...dependencies, clock }, appAdmin.id);
+
+      const outcome = await refresh({ ...dependencies, clock, resultsSource: withResults({ 1: penalised }) }, appAdmin.id);
+
+      expect(outcome).toMatchObject({
+        updated: [{ round: 1, kind: "Race" }],
+        unchanged: [{ round: 1, kind: "Qualifying" }],
       });
     });
 

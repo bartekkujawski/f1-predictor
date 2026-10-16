@@ -38,11 +38,12 @@ export const refreshFromJolpica = async (): Promise<RefreshReport> => {
       return { lines: ["Only the App Admin can refresh."] };
     }
     revalidatePath("/");
-    const { season, rounds, regularDrivers, updated, waiting, errors } = outcome;
+    const { season, rounds, regularDrivers, updated, unchanged, waiting, errors } = outcome;
     return {
       lines: [
         `Synced Season ${season}: ${rounds} Rounds and ${regularDrivers} Regular Drivers.`,
         `Results updated: ${describeSessions(updated)}.`,
+        `Results unchanged: ${describeSessions(unchanged)}.`,
         `Still waiting for results: ${describeSessions(waiting)}.`,
         // Jolpica may be down or rate-limiting; the App Admin can simply try again.
         ...errors.map((error) => `Error: ${error}`),

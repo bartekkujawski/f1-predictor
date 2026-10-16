@@ -5,7 +5,13 @@ import type { SessionKind } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { regularDriver, round, session } from "../db/schema";
-import type { RaceResults, RegularDriver, ResultsSource, ScheduledRound } from "../results-source/results-source";
+import type {
+  DriverOrder,
+  RaceResults,
+  RegularDriver,
+  ResultsSource,
+  ScheduledRound,
+} from "../results-source/results-source";
 
 export type RefreshDependencies = {
   db: Database;
@@ -24,8 +30,10 @@ export type RefreshOutcome =
       season: number;
       rounds: number;
       regularDrivers: number;
-      // Sessions whose results this refresh stored.
+      // Sessions whose results this refresh stored for the first time or changed.
       updated: SessionRef[];
+      // Sessions whose results were already stored as the source has them now.
+      unchanged: SessionRef[];
       // Sessions that have started, in Rounds not yet final, for which the source has no results yet.
       waiting: SessionRef[];
       // Failures of the ResultsSource. Everything else in the refresh still ran.
@@ -89,8 +97,10 @@ const listRounds = (db: Database, season: number) => {
       number: round.number,
       qualifyingId: qualifying.id,
       qualifyingStartsAt: qualifying.startsAt,
+      startingGrid: qualifying.startingGrid,
       raceId: race.id,
       raceStartsAt: race.startsAt,
+      officialClassification: race.officialClassification,
     })
     .from(round)
     .innerJoin(qualifying, and(eq(qualifying.roundId, round.id), eq(qualifying.kind, "Qualifying")))
@@ -99,19 +109,8 @@ const listRounds = (db: Database, season: number) => {
     .orderBy(asc(round.number));
 };
 
-// Two statements, since Neon over HTTP has no transactions (ADR-0009). If the second one fails,
-// the Race has its Official Classification but Qualifying not yet its Starting Grid; the error
-// stops the refresh, and the next refresh writes both again.
-const saveRaceResults = async (db: Database, qualifyingId: number, raceId: number, results: RaceResults) => {
-  await db
-    .update(session)
-    .set({ officialClassification: [...results.officialClassification] })
-    .where(eq(session.id, raceId));
-  await db
-    .update(session)
-    .set({ startingGrid: [...results.startingGrid] })
-    .where(eq(session.id, qualifyingId));
-};
+const isSameOrder = (stored: DriverOrder | null, fetched: DriverOrder): boolean =>
+  stored !== null && stored.length === fetched.length && stored.every((driverId, index) => driverId === fetched[index]);
 
 const describeFailure = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -119,6 +118,7 @@ const describeFailure = (error: unknown): string => (error instanceof Error ? er
 // the stored ones. One Round at a time, which keeps the requests well under Jolpica's rate limit.
 const refreshResults = async (db: Database, resultsSource: ResultsSource, season: number, now: Date) => {
   const updated: SessionRef[] = [];
+  const unchanged: SessionRef[] = [];
   const waiting: SessionRef[] = [];
   const errors: string[] = [];
 
@@ -150,11 +150,37 @@ const refreshResults = async (db: Database, resultsSource: ResultsSource, season
       waiting.push(qualifying, race);
       continue;
     }
-    await saveRaceResults(db, current.qualifyingId, current.raceId, results);
-    updated.push(qualifying, race);
+
+    // Each order is replaced by one statement. The two are separate, since Neon over HTTP has no
+    // transactions (ADR-0009): if the second fails, the error stops the refresh, and the next
+    // refresh writes it then.
+    const orders = [
+      {
+        ref: qualifying,
+        sessionId: current.qualifyingId,
+        stored: current.startingGrid,
+        fetched: results.startingGrid,
+        values: { startingGrid: [...results.startingGrid] },
+      },
+      {
+        ref: race,
+        sessionId: current.raceId,
+        stored: current.officialClassification,
+        fetched: results.officialClassification,
+        values: { officialClassification: [...results.officialClassification] },
+      },
+    ];
+    for (const { ref, sessionId, stored, fetched, values } of orders) {
+      if (isSameOrder(stored, fetched)) {
+        unchanged.push(ref);
+        continue;
+      }
+      await db.update(session).set(values).where(eq(session.id, sessionId));
+      updated.push(ref);
+    }
   }
 
-  return { updated, waiting, errors };
+  return { updated, unchanged, waiting, errors };
 };
 
 // Syncs the current Season's schedule, Regular Drivers and results from the ResultsSource, leaving
@@ -194,6 +220,7 @@ export const refresh = async (
     rounds: schedule.length,
     regularDrivers: drivers.length,
     updated: results.updated,
+    unchanged: results.unchanged,
     waiting: results.waiting,
     errors: [...errors, ...results.errors],
   };
