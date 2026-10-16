@@ -99,6 +99,9 @@ const listRounds = (db: Database, season: number) => {
     .orderBy(asc(round.number));
 };
 
+// Two statements, since Neon over HTTP has no transactions (ADR-0009). If the second one fails,
+// the Race has its Official Classification but Qualifying not yet its Starting Grid; the error
+// stops the refresh, and the next refresh writes both again.
 const saveRaceResults = async (db: Database, qualifyingId: number, raceId: number, results: RaceResults) => {
   await db
     .update(session)

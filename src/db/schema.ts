@@ -107,8 +107,8 @@ export const session = pgTable(
     locksAt: timestamp("locks_at", { withTimezone: true }).notNull(),
     // What the Session is scored against, stored as fetched and replaced by each refresh until the
     // Round is a Final Round. Null until published. Each is a driver_id per position, index 0 is P1,
-    // and a null element is a position nobody holds. One array, so a replacement is one atomic
-    // statement (as for Picks, ADR-0009).
+    // and a null element is a position nobody holds. An array rather than rows, so replacing one
+    // order is a single statement that never leaves half of it (as for Picks, ADR-0009).
     // Filled on the Race (and in Part 2 the Sprint).
     officialClassification: text("official_classification").array().$type<(string | null)[]>(),
     // Filled on Qualifying: the Starting Grid is the Race's, but Qualifying is scored against it
