@@ -12,7 +12,7 @@ import { refresh, type SessionRef } from "./refresh";
 // One line per part of the report.
 export type RefreshReport = { lines: string[] } | null;
 
-const listSessions = (sessions: SessionRef[]): string =>
+const describeSessions = (sessions: SessionRef[]): string =>
   sessions.length === 0 ? "none" : sessions.map(({ round, kind }) => `Round ${round} ${kind}`).join(", ");
 
 // Drizzle's message is the whole failed query; the database's own reason is in error.cause.
@@ -42,8 +42,8 @@ export const refreshFromJolpica = async (): Promise<RefreshReport> => {
     return {
       lines: [
         `Synced Season ${season}: ${rounds} Rounds and ${regularDrivers} Regular Drivers.`,
-        `Results updated: ${listSessions(updated)}.`,
-        `Still waiting for results: ${listSessions(waiting)}.`,
+        `Results updated: ${describeSessions(updated)}.`,
+        `Still waiting for results: ${describeSessions(waiting)}.`,
         // Jolpica may be down or rate-limiting; the App Admin can simply try again.
         ...errors.map((error) => `Error: ${error}`),
       ],
