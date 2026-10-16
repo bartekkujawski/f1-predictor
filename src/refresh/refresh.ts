@@ -126,7 +126,9 @@ const refreshResults = async (db: Database, resultsSource: ResultsSource, season
   for (const [index, current] of rounds.entries()) {
     const next = rounds[index + 1];
     // A Round becomes final when the next Round starts (CONTEXT.md, "Final Round"). Practice is
-    // not a Session, so the next Round's first Session, Qualifying, is where it starts.
+    // not a Session, so the next Round's first Session, Qualifying, is where it starts. The last
+    // Round has no next one: it becomes final when the Season ends, because from then on the
+    // refresh syncs the next Season and never comes back to this one.
     const isFinal = next !== undefined && next.qualifyingStartsAt <= now;
     if (isFinal || current.qualifyingStartsAt > now) {
       continue;

@@ -89,7 +89,7 @@ _Avoid_: Results, standings (for a single Session)
 **Starting Grid**:
 The order in which drivers line up for the Race, after grid penalties. Qualifying is scored
 against the Starting Grid, not against its own Official Classification. Drivers starting from
-the pit lane have no Starting Grid position.
+the pit lane, and drivers who did not start, have no Starting Grid position.
 _Avoid_: Qualifying result, grid positions
 
 **Top 10**:
@@ -118,7 +118,9 @@ The whole-number weight applied to a Session's points: Sprint lowest, Race highe
 The points a Player earns for one Session after the Session Multiplier.
 
 **Final Round**:
-A Round whose results can no longer change the scores. A Round becomes final when the next Round starts.
+A Round whose results can no longer change the scores. A Round becomes final when the next Round
+starts, which is when that Round's first Session, its Qualifying, starts. The last Round of a Season
+becomes final when the Season ends.
 
 **Season Table**:
 The ranking of a League's Members by total Session Scores in a Season.
