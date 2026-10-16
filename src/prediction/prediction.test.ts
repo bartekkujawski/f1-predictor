@@ -258,6 +258,7 @@ describe("getSessionPredictions", () => {
         locksAt: bahrain.qualifyingStartsAt,
         visible: { state: "open", own: topTen },
         regularDrivers: expect.arrayContaining(regularDrivers),
+        scoredAgainst: "Official Classification",
         top10: null,
       },
     });
@@ -329,13 +330,22 @@ describe("getSessionPredictions", () => {
         appAdmin.id,
       );
 
-    const top10Of = async (db: Database, kind: "Qualifying" | "Race") => {
+    const sessionAfterRace = async (db: Database, kind: "Qualifying" | "Race") => {
       const outcome = await getSessionPredictions({ db, clock: at(AFTER_RACE) }, ania.id, 1, kind);
       if (outcome.status !== "found") {
         throw new Error(`Expected the Session to be found, got ${outcome.status}.`);
       }
-      return outcome.session.top10;
+      return outcome.session;
     };
+
+    const top10Of = async (db: Database, kind: "Qualifying" | "Race") => (await sessionAfterRace(db, kind)).top10;
+
+    it("scores Qualifying against the Starting Grid and the Race against its Official Classification", async () => {
+      const db = await syncedDatabase();
+
+      expect((await sessionAfterRace(db, "Qualifying")).scoredAgainst).toBe("Starting Grid");
+      expect((await sessionAfterRace(db, "Race")).scoredAgainst).toBe("Official Classification");
+    });
 
     it("has no Top 10 until results are stored", async () => {
       const db = await syncedDatabase();

@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { type SessionKind, type SessionState, sessionStateAt } from "../calendar/session";
+import { type ScoredAgainst, scoredAgainst, type SessionKind, type SessionState, sessionStateAt } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { member, player, prediction, regularDriver, round, session } from "../db/schema";
@@ -43,9 +43,9 @@ export type SessionPredictions = {
   locksAt: Date;
   visible: VisiblePredictions;
   regularDrivers: RegularDriver[];
-  // What the Session is scored against, positions 1–10: the Starting Grid for Qualifying (ADR-0008),
-  // the Official Classification otherwise. A null position is an empty grid slot. Null until results
-  // are stored.
+  scoredAgainst: ScoredAgainst;
+  // Positions 1–10 of what the Session is scored against. A null position is an empty grid slot.
+  // Null until it is published.
   top10: DriverOrder | null;
 };
 
@@ -196,7 +196,8 @@ export const getSessionPredictions = async (
     sessionStateAt(found.locksAt, now) === "open"
       ? { state: "open", own: await findOwnPrediction(db, found.id, viewerId) }
       : { state: "locked", members: await listMemberPredictions(db, found.id, viewerId) };
-  const scoredAgainst = kind === "Qualifying" ? found.startingGrid : found.officialClassification;
+  const against = scoredAgainst(kind);
+  const order = against === "Starting Grid" ? found.startingGrid : found.officialClassification;
 
   return {
     status: "found",
@@ -206,7 +207,8 @@ export const getSessionPredictions = async (
       locksAt: found.locksAt,
       visible,
       regularDrivers: await listRegularDrivers(db, season),
-      top10: scoredAgainst?.slice(0, TOP_10_SIZE) ?? null,
+      scoredAgainst: against,
+      top10: order?.slice(0, TOP_10_SIZE) ?? null,
     },
   };
 };
