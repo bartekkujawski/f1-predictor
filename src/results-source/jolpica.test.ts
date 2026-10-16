@@ -157,6 +157,23 @@ describe("Jolpica ResultsSource", () => {
       expect(usa2023?.officialClassification).not.toContain("hamilton");
     });
 
+    it("moves the drivers behind a disqualified one up, even if Jolpica left the disqualified driver at their place", async () => {
+      // Miami 2022 as if Leclerc had been disqualified but Jolpica had kept him at "2".
+      const [race] = results2022Round5.MRData.RaceTable.Races;
+      const results = race.Results.map((result) =>
+        result.Driver.driverId === "leclerc" ? { ...result, status: "Disqualified" } : result,
+      );
+      const body = {
+        MRData: { ...results2022Round5.MRData, RaceTable: { ...results2022Round5.MRData.RaceTable, Races: [{ ...race, Results: results }] } },
+      };
+      const source = createJolpicaResultsSource(fakeFetch(body).fetch);
+
+      const classification = (await source.fetchRaceResults(2022, 5))?.officialClassification;
+
+      expect(classification?.slice(0, 3)).toEqual(["max_verstappen", "sainz", "perez"]);
+      expect(classification).toHaveLength(16);
+    });
+
     it("keeps a disqualified driver on the Starting Grid, since they did start from it", async () => {
       const source = createJolpicaResultsSource(fakeFetch(results2023Round18).fetch);
 

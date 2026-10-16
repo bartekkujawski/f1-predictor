@@ -111,9 +111,13 @@ const isClassified = (result: JolpicaResult): boolean =>
 const startedFromGrid = (result: JolpicaResult): boolean => result.grid !== "0" && result.positionText !== "W";
 
 const toRaceResults = (results: JolpicaResult[]): RaceResults => ({
-  officialClassification: toDriverOrder(
-    results.filter(isClassified).map((result) => ({ position: Number(result.positionText), driverId: result.Driver.driverId })),
-  ),
+  // In finishing order without gaps: when a driver is disqualified, those behind move up. Jolpica
+  // usually renumbers them itself, but this does not rely on it. Grid slots, unlike positions here,
+  // stay empty (ADR-0008).
+  officialClassification: results
+    .filter(isClassified)
+    .sort((a, b) => Number(a.positionText) - Number(b.positionText))
+    .map((result) => result.Driver.driverId),
   startingGrid: toDriverOrder(
     results.filter(startedFromGrid).map((result) => ({ position: Number(result.grid), driverId: result.Driver.driverId })),
   ),

@@ -23,7 +23,8 @@ export type DriverOrder = readonly (string | null)[];
 
 // Both come from one Race's results: Jolpica publishes the Starting Grid there (ADR-0008).
 export type RaceResults = {
-  // Classified finishers only: not the unclassified, those who did not start, or the disqualified.
+  // Classified finishers only, with no empty positions: not the unclassified, those who did not
+  // start, or the disqualified.
   officialClassification: DriverOrder;
   // After grid penalties. Pit lane starters and drivers who did not start leave their slot empty.
   startingGrid: DriverOrder;
