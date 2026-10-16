@@ -145,8 +145,7 @@ describe("refresh", () => {
     expect(await refresh(dependencies, appAdmin.id)).toEqual({
       status: "synced",
       season: 2026,
-      rounds: 2,
-      regularDrivers: 2,
+      calendar: { rounds: 2, regularDrivers: 2 },
       updated: [],
       unchanged: [],
       waiting: [],
@@ -356,7 +355,7 @@ describe("refresh", () => {
 
       const outcome = await refresh({ ...dependencies, clock: fixedClock(AFTER_BAHRAIN) }, appAdmin.id);
 
-      expect(outcome).toMatchObject({ status: "synced", rounds: 2, updated: [], waiting: [] });
+      expect(outcome).toMatchObject({ status: "synced", calendar: { rounds: 2 }, updated: [], waiting: [] });
       expect(outcome.status === "synced" && outcome.errors).toEqual(["Round 1 results: Jolpica answered 503"]);
       expect(await db.select().from(round)).toHaveLength(2);
     });
@@ -376,7 +375,10 @@ describe("refresh", () => {
         appAdmin.id,
       );
 
-      expect(outcome).toMatchObject({ errors: ["Schedule and Regular Drivers: Could not reach Jolpica"] });
+      expect(outcome).toMatchObject({
+        calendar: null,
+        errors: ["Schedule and Regular Drivers: Could not reach Jolpica"],
+      });
       const [, race] = await storedResults(db);
       expect(race.officialClassification).toEqual(bahrainResults.officialClassification);
     });

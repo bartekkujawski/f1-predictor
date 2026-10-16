@@ -28,8 +28,8 @@ export type RefreshOutcome =
   | {
       status: "synced";
       season: number;
-      rounds: number;
-      regularDrivers: number;
+      // How many Rounds and Regular Drivers were synced; null when they could not be fetched.
+      calendar: { rounds: number; regularDrivers: number } | null;
       // Sessions whose results this refresh stored for the first time or changed.
       updated: SessionRef[];
       // Sessions whose results were already stored as the source has them now.
@@ -198,27 +198,28 @@ export const refresh = async (
   const season = now.getUTCFullYear();
   const errors: string[] = [];
 
-  let schedule: ScheduledRound[] = [];
-  let drivers: RegularDriver[] = [];
+  // Only the fetch is caught: a database failure still stops the refresh.
+  let fetched: [ScheduledRound[], RegularDriver[]] | null = null;
   try {
-    [schedule, drivers] = await Promise.all([
-      resultsSource.fetchSchedule(season),
-      resultsSource.fetchRegularDrivers(season),
-    ]);
+    fetched = await Promise.all([resultsSource.fetchSchedule(season), resultsSource.fetchRegularDrivers(season)]);
   } catch (error) {
     // The Rounds already stored can still get their results.
     errors.push(`Schedule and Regular Drivers: ${describeFailure(error)}`);
   }
-  await saveSchedule(db, schedule, now);
-  await saveRegularDrivers(db, season, drivers);
+  let calendar: { rounds: number; regularDrivers: number } | null = null;
+  if (fetched) {
+    const [schedule, drivers] = fetched;
+    await saveSchedule(db, schedule, now);
+    await saveRegularDrivers(db, season, drivers);
+    calendar = { rounds: schedule.length, regularDrivers: drivers.length };
+  }
 
   const results = await refreshResults(db, resultsSource, season, now);
 
   return {
     status: "synced",
     season,
-    rounds: schedule.length,
-    regularDrivers: drivers.length,
+    calendar,
     updated: results.updated,
     unchanged: results.unchanged,
     waiting: results.waiting,

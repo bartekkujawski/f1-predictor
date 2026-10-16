@@ -38,10 +38,13 @@ export const refreshFromJolpica = async (): Promise<RefreshReport> => {
       return { lines: ["Only the App Admin can refresh."] };
     }
     revalidatePath("/");
-    const { season, rounds, regularDrivers, updated, unchanged, waiting, errors } = outcome;
+    const { season, calendar, updated, unchanged, waiting, errors } = outcome;
     return {
       lines: [
-        `Synced Season ${season}: ${rounds} Rounds and ${regularDrivers} Regular Drivers.`,
+        // Without the calendar, the error below says why.
+        ...(calendar
+          ? [`Synced Season ${season}: ${calendar.rounds} Rounds and ${calendar.regularDrivers} Regular Drivers.`]
+          : []),
         `Results updated: ${describeSessions(updated)}.`,
         `Results unchanged: ${describeSessions(unchanged)}.`,
         `Still waiting for results: ${describeSessions(waiting)}.`,
