@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import results2022Round5 from "./fixtures/results-2022-round-5.json";
+import results2023Round18 from "./fixtures/results-2023-round-18.json";
+import results2024Round21 from "./fixtures/results-2024-round-21.json";
 import results2026Round1 from "./fixtures/results-2026-round-1.json";
 import schedule2025 from "./fixtures/schedule-2025.json";
 import { createJolpicaResultsSource } from "./jolpica";
@@ -97,6 +100,115 @@ describe("Jolpica ResultsSource", () => {
       await createJolpicaResultsSource(fetch).fetchRegularDrivers(2026);
 
       expect(requests[0].url).toMatch(/^https:\/\/api\.jolpi\.ca\/ergast\/f1\/2026\/1\/results\.json/);
+      expect(requests[0].userAgent).toMatch(/f1-predictor/);
+    });
+  });
+
+  describe("fetchRaceResults", () => {
+    it("maps the Official Classification in finishing order", async () => {
+      const source = createJolpicaResultsSource(fakeFetch(results2022Round5).fetch);
+
+      const results = await source.fetchRaceResults(2022, 5);
+
+      expect(results?.officialClassification.slice(0, 3)).toEqual(["max_verstappen", "leclerc", "sainz"]);
+    });
+
+    it("gives no position to a driver who retired and is not classified", async () => {
+      const source = createJolpicaResultsSource(fakeFetch(results2022Round5).fetch);
+
+      const results = await source.fetchRaceResults(2022, 5);
+
+      expect(results?.officialClassification).toHaveLength(17);
+      expect(results?.officialClassification).not.toContain("gasly");
+    });
+
+    it("gives a pit lane starter no grid position, and leaves their slot empty", async () => {
+      const source = createJolpicaResultsSource(fakeFetch(results2022Round5).fetch);
+
+      const results = await source.fetchRaceResults(2022, 5);
+
+      // Miami 2022: Stroll and Vettel started from the pit lane; slots 10 and 13 stayed empty.
+      expect(results?.startingGrid.slice(0, 13)).toEqual([
+        "leclerc",
+        "sainz",
+        "max_verstappen",
+        "perez",
+        "bottas",
+        "hamilton",
+        "gasly",
+        "norris",
+        "tsunoda",
+        null,
+        "alonso",
+        "russell",
+        null,
+      ]);
+      expect(results?.startingGrid).not.toContain("stroll");
+      expect(results?.startingGrid).not.toContain("vettel");
+    });
+
+    it("gives a disqualified driver no position, whether Jolpica marks it in the position or only in the status", async () => {
+      const brazil2024 = await createJolpicaResultsSource(fakeFetch(results2024Round21).fetch).fetchRaceResults(2024, 21);
+      const usa2023 = await createJolpicaResultsSource(fakeFetch(results2023Round18).fetch).fetchRaceResults(2023, 18);
+
+      expect(brazil2024?.officialClassification).not.toContain("hulkenberg");
+      // Austin 2023: Hamilton and Leclerc were disqualified, but keep positions 19 and 20 in Jolpica.
+      expect(usa2023?.officialClassification).toHaveLength(15);
+      expect(usa2023?.officialClassification).not.toContain("hamilton");
+    });
+
+    it("moves the drivers behind a disqualified one up, even if Jolpica left the disqualified driver at their place", async () => {
+      // Miami 2022 as if Leclerc had been disqualified but Jolpica had kept him at "2".
+      const [race] = results2022Round5.MRData.RaceTable.Races;
+      const results = race.Results.map((result) =>
+        result.Driver.driverId === "leclerc" ? { ...result, status: "Disqualified" } : result,
+      );
+      const body = {
+        MRData: { ...results2022Round5.MRData, RaceTable: { ...results2022Round5.MRData.RaceTable, Races: [{ ...race, Results: results }] } },
+      };
+      const source = createJolpicaResultsSource(fakeFetch(body).fetch);
+
+      const classification = (await source.fetchRaceResults(2022, 5))?.officialClassification;
+
+      expect(classification?.slice(0, 3)).toEqual(["max_verstappen", "sainz", "perez"]);
+      expect(classification).toHaveLength(16);
+    });
+
+    it("keeps a disqualified driver on the Starting Grid, since they did start from it", async () => {
+      const source = createJolpicaResultsSource(fakeFetch(results2023Round18).fetch);
+
+      const results = await source.fetchRaceResults(2023, 18);
+
+      expect(results?.startingGrid[0]).toBe("leclerc");
+      expect(results?.startingGrid[2]).toBe("hamilton");
+    });
+
+    it("leaves the grid slot of a driver who did not start empty", async () => {
+      const source = createJolpicaResultsSource(fakeFetch(results2024Round21).fetch);
+
+      const results = await source.fetchRaceResults(2024, 21);
+
+      // São Paulo 2024: Albon (grid 7) and Stroll (grid 10) did not start.
+      expect(results?.startingGrid[6]).toBeNull();
+      expect(results?.startingGrid[9]).toBeNull();
+      expect(results?.officialClassification).not.toContain("albon");
+    });
+
+    it("has no results before Jolpica publishes them", async () => {
+      const body = {
+        MRData: { ...results2026Round1.MRData, total: "0", RaceTable: { season: "2026", round: "2", Races: [] } },
+      };
+      const source = createJolpicaResultsSource(fakeFetch(body).fetch);
+
+      expect(await source.fetchRaceResults(2026, 2)).toBeNull();
+    });
+
+    it("asks for the Round's Race results with a descriptive User-Agent", async () => {
+      const { fetch, requests } = fakeFetch(results2022Round5);
+
+      await createJolpicaResultsSource(fetch).fetchRaceResults(2022, 5);
+
+      expect(requests[0].url).toMatch(/^https:\/\/api\.jolpi\.ca\/ergast\/f1\/2022\/5\/results\.json/);
       expect(requests[0].userAgent).toMatch(/f1-predictor/);
     });
   });

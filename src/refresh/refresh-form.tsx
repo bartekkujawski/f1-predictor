@@ -10,7 +10,13 @@ export const RefreshForm = () => {
       <button type="submit" disabled={isPending}>
         {isPending ? "Refreshing…" : "Refresh from Jolpica"}
       </button>
-      {report && <p role="status">{report.message}</p>}
+      {report && (
+        <div role="status">
+          {report.lines.map((line, index) => (
+            <p key={index}>{line}</p>
+          ))}
+        </div>
+      )}
     </form>
   );
 };

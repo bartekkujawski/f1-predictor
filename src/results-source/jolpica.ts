@@ -1,4 +1,4 @@
-import type { RegularDriver, ResultsSource, ScheduledRound } from "./results-source";
+import type { DriverOrder, RaceResults, RegularDriver, ResultsSource, ScheduledRound } from "./results-source";
 
 // The Jolpica F1 API (Ergast-compatible), ADR-0003. Only the fields we read are typed here.
 
@@ -24,8 +24,18 @@ type JolpicaPage = { limit: string; offset: string; total: string };
 
 type JolpicaScheduleResponse = { MRData: JolpicaPage & { RaceTable: { Races: JolpicaRace[] } } };
 
+type JolpicaResult = {
+  // A number for a classified finisher; otherwise a letter: R(etired), D(isqualified), W(ithdrawn),
+  // N(ot classified), E(xcluded), F(ailed to qualify).
+  positionText: string;
+  // "0" for a pit lane start.
+  grid: string;
+  status: string;
+  Driver: JolpicaDriver;
+};
+
 type JolpicaResultsResponse = {
-  MRData: JolpicaPage & { RaceTable: { Races: { Results: { Driver: JolpicaDriver }[] }[] } };
+  MRData: JolpicaPage & { RaceTable: { Races: { Results: JolpicaResult[] }[] } };
 };
 
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
@@ -81,6 +91,38 @@ const toRegularDriver = (driver: JolpicaDriver): RegularDriver => ({
   name: `${driver.givenName} ${driver.familyName}`,
 });
 
+// Places each driver at their position, leaving null where nobody holds a position.
+const toDriverOrder = (positioned: { position: number; driverId: string }[]): DriverOrder => {
+  const length = Math.max(0, ...positioned.map(({ position }) => position));
+  const order: (string | null)[] = Array.from({ length }, () => null);
+  for (const { position, driverId } of positioned) {
+    order[position - 1] = driverId;
+  }
+  return order;
+};
+
+// Jolpica does not always mark a disqualification in positionText: at Austin 2023 the disqualified
+// drivers kept positions 19 and 20, and only their status says "Disqualified".
+const isClassified = (result: JolpicaResult): boolean =>
+  /^\d+$/.test(result.positionText) && result.status !== "Disqualified";
+
+// A driver who did not start never lined up, so their slot stays empty like a pit lane starter's
+// (docs/rules.md). A disqualified driver did start, so they keep their slot.
+const startedFromGrid = (result: JolpicaResult): boolean => result.grid !== "0" && result.positionText !== "W";
+
+const toRaceResults = (results: JolpicaResult[]): RaceResults => ({
+  // In finishing order without gaps: when a driver is disqualified, those behind move up. Jolpica
+  // usually renumbers them itself, but this does not rely on it. Grid slots, unlike positions here,
+  // stay empty (ADR-0008).
+  officialClassification: results
+    .filter(isClassified)
+    .sort((a, b) => Number(a.positionText) - Number(b.positionText))
+    .map((result) => result.Driver.driverId),
+  startingGrid: toDriverOrder(
+    results.filter(startedFromGrid).map((result) => ({ position: Number(result.grid), driverId: result.Driver.driverId })),
+  ),
+});
+
 // Takes fetch as an argument, so tests answer with saved fixtures instead of the network.
 export const createJolpicaResultsSource = (fetch: Fetch = globalThis.fetch): ResultsSource => ({
   fetchSchedule: async (season) => {
@@ -94,5 +136,10 @@ export const createJolpicaResultsSource = (fetch: Fetch = globalThis.fetch): Res
     const body = await getJson<JolpicaResultsResponse>(fetch, `${season}/1/results.json`);
     const [firstRace] = body.MRData.RaceTable.Races;
     return firstRace ? firstRace.Results.map((result) => toRegularDriver(result.Driver)) : [];
+  },
+  fetchRaceResults: async (season, round) => {
+    const body = await getJson<JolpicaResultsResponse>(fetch, `${season}/${round}/results.json`);
+    const [race] = body.MRData.RaceTable.Races;
+    return race ? toRaceResults(race.Results) : null;
   },
 });

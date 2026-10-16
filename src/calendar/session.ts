@@ -12,3 +12,10 @@ export type SessionState = "open" | "locked";
 
 // Locked at the Lock itself, not one moment later: a save at the Lock is already refused.
 export const sessionStateAt = (locksAt: Date, now: Date): SessionState => (now < locksAt ? "open" : "locked");
+
+// What a Session's Picks are compared with. Qualifying uses the Starting Grid, so grid penalties
+// count (ADR-0008); every other Session uses its own Official Classification.
+export type ScoredAgainst = "Starting Grid" | "Official Classification";
+
+export const scoredAgainst = (kind: SessionKind): ScoredAgainst =>
+  kind === "Qualifying" ? "Starting Grid" : "Official Classification";

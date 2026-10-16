@@ -32,14 +32,20 @@ One ruleset applies to every League. Rules are not configurable per League.
 ## Scoring a Pick
 
 Only drivers in the Top 10 of the Official Classification score. A driver who retired but is still
-classified in the Top 10 counts; unclassified, did-not-start and disqualified drivers score 0.
+classified in the Top 10 counts; unclassified, did-not-start and disqualified drivers score 0. When a
+driver is disqualified after the Race, the drivers behind them move up.
 
 For Qualifying, the Top 10 is taken from the **Starting Grid** instead (see ADR 0008):
 
 - Grid penalties count, and Qualifying points are only known once the Race results are published.
-- Pit lane starters have no grid position and score 0.
-- A grid slot left empty by a pit lane starter stays empty; nobody moves up. The Top 10 then has
-  fewer than ten drivers, and a Perfect Top 10 is impossible for that Session.
+- Pit lane starters have no grid position and score 0. So do drivers who did not start: they never
+  lined up.
+- A driver disqualified from the Race keeps their grid position, since they did start from it. A
+  driver disqualified from Qualifying starts from the back or the pit lane, which the Starting Grid
+  already shows.
+- A grid slot left empty by a pit lane starter or a driver who did not start stays empty; nobody
+  moves up. The Top 10 then has fewer than ten drivers, and a Perfect Top 10 is impossible for that
+  Session.
 
 Points for a Pick = **5 Base Points** + **Accuracy Bonus**:
 
@@ -88,7 +94,8 @@ Regular Driver. A permanent seat change mid-season updates the Regular Driver li
 
 - Results are fetched automatically after each Session and refreshed until the next Round starts,
   so post-race penalties are reflected.
-- Once the next Round starts, the Round is a Final Round and its scores no longer change.
+- Once the next Round starts (its Qualifying), the Round is a Final Round and its scores no longer
+  change. The last Round of the Season becomes final when the Season ends.
 - Cancelled Session (no Official Classification): nobody scores. A Session with an Official
   Classification is scored normally, even if it was shortened.
 - If the Race is cancelled after Qualifying, there is no Starting Grid, so Qualifying is a
