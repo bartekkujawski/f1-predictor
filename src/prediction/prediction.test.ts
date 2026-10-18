@@ -269,8 +269,7 @@ describe("getSessionPredictions", () => {
         visible: { state: "open", own: topTen },
         regularDrivers: expect.arrayContaining(regularDrivers),
         scoredAgainst: "Official Classification",
-        top10: null,
-        cancelled: false,
+        top10: { state: "not-published-yet" },
       },
     });
   });
@@ -361,15 +360,15 @@ describe("getSessionPredictions", () => {
     it("has no Top 10 until results are stored", async () => {
       const db = await syncedDatabase();
 
-      expect(await top10Of(db, "Race")).toBeNull();
-      expect(await top10Of(db, "Qualifying")).toBeNull();
+      expect(await top10Of(db, "Race")).toEqual({ state: "not-published-yet" });
+      expect(await top10Of(db, "Qualifying")).toEqual({ state: "not-published-yet" });
     });
 
     it("shows positions 1–10 of the Race's Official Classification", async () => {
       const db = await syncedDatabase();
       await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
 
-      expect(await top10Of(db, "Race")).toEqual(driverIds.slice(0, 10));
+      expect(await top10Of(db, "Race")).toEqual({ state: "published", order: driverIds.slice(0, 10) });
     });
 
     it("shows the Starting Grid for Qualifying, with an empty slot kept empty", async () => {
@@ -377,7 +376,10 @@ describe("getSessionPredictions", () => {
       const grid = [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 11)];
       await storeResults(db, { officialClassification: driverIds, startingGrid: grid });
 
-      expect(await top10Of(db, "Qualifying")).toEqual([...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)]);
+      expect(await top10Of(db, "Qualifying")).toEqual({
+        state: "published",
+        order: [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)],
+      });
     });
   });
 
@@ -491,8 +493,7 @@ describe("getSessionPredictions", () => {
 
       const session = await sessionAt(db, ROUND_1_FINAL, kind);
 
-      expect(session.cancelled).toBe(true);
-      expect(session.top10).toBeNull();
+      expect(session.top10).toEqual({ state: "cancelled" });
       expect(session.visible).toEqual({
         state: "locked",
         members: [
@@ -510,7 +511,7 @@ describe("getSessionPredictions", () => {
 
         const session = await sessionAt(db, JUST_BEFORE_ROUND_1_FINAL, kind);
 
-        expect(session.cancelled).toBe(false);
+        expect(session.top10).toEqual({ state: "not-published-yet" });
         expect(session.visible).toEqual({
           state: "locked",
           members: [
@@ -528,7 +529,7 @@ describe("getSessionPredictions", () => {
 
       const session = await sessionAt(db, ROUND_1_FINAL, "Race");
 
-      expect(session.cancelled).toBe(false);
+      expect(session.top10.state).toBe("published");
       expect(session.visible.state === "locked" && session.visible.members[0].score).toEqual({
         points: (10 * 25 + 50) * 3,
         exactHits: 10,
@@ -538,7 +539,7 @@ describe("getSessionPredictions", () => {
     it("never cancels a Session of the last Round of the Season, which has no next Round", async () => {
       const db = await syncedDatabase();
 
-      expect((await sessionAt(db, "2026-12-31T23:59:59Z", "Race")).cancelled).toBe(false);
+      expect((await sessionAt(db, "2026-12-31T23:59:59Z", "Race")).top10).toEqual({ state: "not-published-yet" });
     });
   });
 });
