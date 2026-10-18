@@ -37,7 +37,7 @@ _Avoid_: Invite token, invitation
 ### Calendar
 
 **Season**:
-One year of the F1 championship.
+One year of the F1 championship. It ends when the calendar year ends.
 
 **Round**:
 One race weekend of a Season, identified by its number in the calendar.
@@ -57,7 +57,8 @@ _Avoid_: Deadline, cutoff, close
 
 **Cancelled Session**:
 A Session that produced no Official Classification (for Qualifying: no Starting Grid).
-Nobody scores for it.
+Everyone scores 0 for it. It is detected once its Round is a Final Round: a Session still without
+what it is scored against by then is cancelled. Before that, its results are only not published yet.
 
 ### Drivers
 

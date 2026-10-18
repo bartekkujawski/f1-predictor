@@ -1,6 +1,7 @@
 import { type Column, and, asc, eq, gt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { isAppAdmin } from "../app-admin/app-admin";
+import { isFinalRound } from "../calendar/round";
 import type { SessionKind } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
@@ -125,12 +126,7 @@ const refreshResults = async (db: Database, resultsSource: ResultsSource, season
   const rounds = await listRounds(db, season);
   for (const [index, current] of rounds.entries()) {
     const next = rounds[index + 1];
-    // A Round becomes final when the next Round starts (CONTEXT.md, "Final Round"). Practice is
-    // not a Session, so the next Round's first Session, Qualifying, is where it starts. The last
-    // Round has no next one: it becomes final when the Season ends, because from then on the
-    // refresh syncs the next Season and never comes back to this one.
-    const isFinal = next !== undefined && next.qualifyingStartsAt <= now;
-    if (isFinal || current.qualifyingStartsAt > now) {
+    if (isFinalRound(next?.qualifyingStartsAt ?? null, now) || current.qualifyingStartsAt > now) {
       continue;
     }
     const qualifying: SessionRef = { round: current.number, kind: "Qualifying" };

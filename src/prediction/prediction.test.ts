@@ -46,8 +46,18 @@ const outsider = { id: "player-ola", name: "Ola Lis", email: "ola@example.com", 
 // Long before the Lock of Round 1.
 const BEFORE_LOCK = "2026-03-01T12:00:00Z";
 
-// A database with Round 1 and the Regular Drivers synced, and Ania a Member of the League.
-const syncedDatabase = async () => {
+// The Round after Bahrain. Round 1 becomes final when its Qualifying starts.
+const saudiArabia: ScheduledRound = {
+  season: 2026,
+  number: 2,
+  name: "Saudi Arabian Grand Prix",
+  qualifyingStartsAt: new Date("2026-03-21T17:00:00Z"),
+  raceStartsAt: new Date("2026-03-22T17:00:00Z"),
+};
+
+// A database with the given Rounds (Round 1 by default) and the Regular Drivers synced, and Ania a
+// Member of the League.
+const syncedDatabase = async (schedule: ScheduledRound[] = [bahrain]) => {
   const db = await createTestDatabase();
   await db.insert(player).values([appAdmin, ania, outsider]);
   const created = await createLeague({ db, appAdminEmails: [appAdmin.email] }, appAdmin.id, "Friends League");
@@ -58,7 +68,7 @@ const syncedDatabase = async () => {
   await refresh(
     {
       db,
-      resultsSource: createFakeResultsSource({ 2026: { schedule: [bahrain], regularDrivers } }),
+      resultsSource: createFakeResultsSource({ 2026: { schedule, regularDrivers } }),
       clock: fixedClock(new Date("2026-01-01T00:00:00Z")),
       appAdminEmails: [appAdmin.email],
     },
@@ -259,7 +269,7 @@ describe("getSessionPredictions", () => {
         visible: { state: "open", own: topTen },
         regularDrivers: expect.arrayContaining(regularDrivers),
         scoredAgainst: "Official Classification",
-        top10: null,
+        top10: { state: "not-published-yet" },
       },
     });
   });
@@ -350,15 +360,15 @@ describe("getSessionPredictions", () => {
     it("has no Top 10 until results are stored", async () => {
       const db = await syncedDatabase();
 
-      expect(await top10Of(db, "Race")).toBeNull();
-      expect(await top10Of(db, "Qualifying")).toBeNull();
+      expect(await top10Of(db, "Race")).toEqual({ state: "not-published-yet" });
+      expect(await top10Of(db, "Qualifying")).toEqual({ state: "not-published-yet" });
     });
 
     it("shows positions 1–10 of the Race's Official Classification", async () => {
       const db = await syncedDatabase();
       await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
 
-      expect(await top10Of(db, "Race")).toEqual(driverIds.slice(0, 10));
+      expect(await top10Of(db, "Race")).toEqual({ state: "published", order: driverIds.slice(0, 10) });
     });
 
     it("shows the Starting Grid for Qualifying, with an empty slot kept empty", async () => {
@@ -366,7 +376,10 @@ describe("getSessionPredictions", () => {
       const grid = [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 11)];
       await storeResults(db, { officialClassification: driverIds, startingGrid: grid });
 
-      expect(await top10Of(db, "Qualifying")).toEqual([...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)]);
+      expect(await top10Of(db, "Qualifying")).toEqual({
+        state: "published",
+        order: [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)],
+      });
     });
   });
 
@@ -452,6 +465,81 @@ describe("getSessionPredictions", () => {
         { nickname: "Ania", score: { points: 8 * 15 * 3, exactHits: 0 } },
         { nickname: "Bartek", score: { points: (10 * 25 + 50) * 3, exactHits: 10 } },
       ]);
+    });
+  });
+
+  describe("Cancelled Session", () => {
+    const ROUND_1_FINAL = saudiArabia.qualifyingStartsAt.toISOString();
+    const JUST_BEFORE_ROUND_1_FINAL = "2026-03-21T16:59:59Z";
+
+    const sessionAt = async (db: Database, iso: string, kind: "Qualifying" | "Race") => {
+      const outcome = await getSessionPredictions({ db, clock: at(iso) }, ania.id, 1, kind);
+      if (outcome.status !== "found") {
+        throw new Error(`Expected the Session to be found, got ${outcome.status}.`);
+      }
+      return outcome.session;
+    };
+
+    // Ania predicted, the App Admin did not.
+    const predictAsAnia = (db: Database, kind: "Qualifying" | "Race") =>
+      savePrediction({ db, clock: at(BEFORE_LOCK) }, ania.id, { round: 1, kind, picks: topTen });
+
+    it.each([
+      { case: "a Qualifying whose Race was cancelled, so it has no Starting Grid", kind: "Qualifying" as const },
+      { case: "a Race without an Official Classification", kind: "Race" as const },
+    ])("cancels $case once the Round is final, and gives every Member 0", async ({ kind }) => {
+      const db = await syncedDatabase([bahrain, saudiArabia]);
+      await predictAsAnia(db, kind);
+
+      const session = await sessionAt(db, ROUND_1_FINAL, kind);
+
+      expect(session.top10).toEqual({ state: "cancelled" });
+      expect(session.visible).toEqual({
+        state: "locked",
+        members: [
+          { nickname: "Ania", prediction: topTen, score: { points: 0, exactHits: 0 } },
+          { nickname: "Bartek", prediction: null, score: { points: 0, exactHits: 0 } },
+        ],
+      });
+    });
+
+    it.each(["Qualifying" as const, "Race" as const])(
+      "keeps waiting for the results of a %s in a Round that is not final yet, with no scores",
+      async (kind) => {
+        const db = await syncedDatabase([bahrain, saudiArabia]);
+        await predictAsAnia(db, kind);
+
+        const session = await sessionAt(db, JUST_BEFORE_ROUND_1_FINAL, kind);
+
+        expect(session.top10).toEqual({ state: "not-published-yet" });
+        expect(session.visible).toEqual({
+          state: "locked",
+          members: [
+            { nickname: "Ania", prediction: topTen, score: null },
+            { nickname: "Bartek", prediction: null, score: null },
+          ],
+        });
+      },
+    );
+
+    it("does not cancel a Session of a Final Round that has its results", async () => {
+      const db = await syncedDatabase([bahrain, saudiArabia]);
+      await predictAsAnia(db, "Race");
+      await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
+
+      const session = await sessionAt(db, ROUND_1_FINAL, "Race");
+
+      expect(session.top10.state).toBe("published");
+      expect(session.visible.state === "locked" && session.visible.members[0].score).toEqual({
+        points: (10 * 25 + 50) * 3,
+        exactHits: 10,
+      });
+    });
+
+    it("never cancels a Session of the last Round of the Season, which has no next Round", async () => {
+      const db = await syncedDatabase();
+
+      expect((await sessionAt(db, "2026-12-31T23:59:59Z", "Race")).top10).toEqual({ state: "not-published-yet" });
     });
   });
 });
