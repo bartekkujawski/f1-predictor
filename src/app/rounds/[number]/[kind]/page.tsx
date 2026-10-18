@@ -17,6 +17,12 @@ const NOT_PUBLISHED_YET: Record<ScoredAgainst, string> = {
   "Official Classification": "The Official Classification is not published yet, so there are no points yet.",
 };
 
+// Shown for a Cancelled Session: the Round is final and nothing will be published any more.
+const CANCELLED: Record<ScoredAgainst, string> = {
+  "Starting Grid": "This Session was cancelled: the Race set no Starting Grid, so everyone scores 0.",
+  "Official Classification": "This Session was cancelled: it has no Official Classification, so everyone scores 0.",
+};
+
 const SessionScoreView = ({ score }: { score: SessionScore }) => (
   <p>
     {score.points} points, {score.exactHits} {score.exactHits === 1 ? "Exact Hit" : "Exact Hits"}
@@ -28,6 +34,8 @@ const Top10View = ({ session }: { session: SessionPredictions }) => (
     <h2>Top 10 of the {session.scoredAgainst}</h2>
     {session.top10 ? (
       <Top10List top10={session.top10} regularDrivers={session.regularDrivers} />
+    ) : session.cancelled ? (
+      <p>{CANCELLED[session.scoredAgainst]}</p>
     ) : (
       <p>{NOT_PUBLISHED_YET[session.scoredAgainst]}</p>
     )}
