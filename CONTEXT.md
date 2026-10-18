@@ -37,7 +37,7 @@ _Avoid_: Invite token, invitation
 ### Calendar
 
 **Season**:
-One year of the F1 championship.
+One year of the F1 championship. It ends when the calendar year ends.
 
 **Round**:
 One race weekend of a Season, identified by its number in the calendar.
