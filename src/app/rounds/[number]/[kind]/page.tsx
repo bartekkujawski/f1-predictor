@@ -7,13 +7,21 @@ import { getCurrentSessionPredictions } from "../../../../prediction/current-pre
 import { PicksList } from "../../../../prediction/picks-list";
 import type { SessionPredictions } from "../../../../prediction/prediction";
 import { Top10List } from "../../../../prediction/top-10-list";
+import type { SessionScore } from "../../../../scoring/session-score";
 
-// Shown until what the Session is scored against is published. The Starting Grid comes with the
-// Race results (ADR-0008), so Qualifying waits for the Race.
+// Shown until what the Session is scored against is published, instead of a Session Score of 0 for
+// everyone. The Starting Grid comes with the Race results (ADR-0008), so Qualifying waits for the Race.
 const NOT_PUBLISHED_YET: Record<ScoredAgainst, string> = {
-  "Starting Grid": "Qualifying is scored against the Starting Grid, which appears once the Race results are published.",
-  "Official Classification": "The Official Classification is not published yet.",
+  "Starting Grid":
+    "Qualifying is scored against the Starting Grid, which appears once the Race results are published. Points appear after the Race results.",
+  "Official Classification": "The Official Classification is not published yet, so there are no points yet.",
 };
+
+const SessionScoreView = ({ score }: { score: SessionScore }) => (
+  <p>
+    {score.points} points, {score.exactHits} {score.exactHits === 1 ? "Exact Hit" : "Exact Hits"}
+  </p>
+);
 
 const Top10View = ({ session }: { session: SessionPredictions }) => (
   <section>
@@ -72,9 +80,10 @@ export default async function SessionPage({ params }: PageProps<"/rounds/[number
           </p>
           <Top10View session={session} />
           {/* Nicknames need not be unique, and the list never reorders, so the index is the key. */}
-          {session.visible.members.map(({ nickname, prediction }, index) => (
+          {session.visible.members.map(({ nickname, prediction, score }, index) => (
             <section key={index}>
               <h2>{nickname}</h2>
+              {score && <SessionScoreView score={score} />}
               {prediction ? (
                 <PicksList prediction={prediction} regularDrivers={session.regularDrivers} />
               ) : (

@@ -6,7 +6,7 @@ import type { Database } from "../db/database";
 import { member, player, prediction, regularDriver, round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
 import type { DriverOrder, RegularDriver } from "../results-source/results-source";
-import { type Prediction, TOP_10_SIZE } from "../scoring/session-score";
+import { type Prediction, scoreSession, type SessionScore, TOP_10_SIZE, type Top10 } from "../scoring/session-score";
 
 export type PredictionDependencies = { db: Database; clock: Clock };
 
@@ -33,8 +33,10 @@ export type VisiblePredictions =
   | { state: "open"; own: Prediction | null }
   | { state: "locked"; members: MemberPrediction[] };
 
-// A Member of the viewer's League with their Prediction, or null if they did not predict.
-export type MemberPrediction = { nickname: string; prediction: Prediction | null };
+// A Member of the viewer's League with their Prediction, or null if they did not predict, and its
+// Session Score: computed here on every read, never stored (ADR-0007). The score is null until the
+// Top 10 is published; a Member without a Prediction then scores 0.
+export type MemberPrediction = { nickname: string; prediction: Prediction | null; score: SessionScore | null };
 
 // One Session as a Member views it, with the Predictions they are allowed to see.
 export type SessionPredictions = {
@@ -149,9 +151,14 @@ const findOwnPrediction = async (db: Database, sessionId: number, viewerId: stri
 };
 
 // Every Member of the viewer's League, with their Prediction for the Session if they made one.
+// The caller adds the Session Score.
 // Part 1 has exactly one League. With several, a Player sharing two Leagues with the viewer would
 // be listed twice, so the viewer would have to choose a League first.
-const listMemberPredictions = async (db: Database, sessionId: number, viewerId: string): Promise<MemberPrediction[]> => {
+const listMemberPredictions = async (
+  db: Database,
+  sessionId: number,
+  viewerId: string,
+): Promise<Omit<MemberPrediction, "score">[]> => {
   const viewerMember = alias(member, "viewer_member");
   return db
     .select({ nickname: player.nickname, prediction: prediction.picks })
@@ -162,6 +169,10 @@ const listMemberPredictions = async (db: Database, sessionId: number, viewerId: 
     .leftJoin(prediction, and(eq(prediction.playerId, member.playerId), eq(prediction.sessionId, sessionId)))
     .orderBy(asc(player.nickname));
 };
+
+// The scoring module's Top 10: position → Regular Driver, with empty slots left out.
+const toTop10 = (order: DriverOrder): Top10 =>
+  new Map(order.flatMap((driverId, index) => (driverId === null ? [] : [[index + 1, driverId] as const])));
 
 // The Predictions of one Session that the viewer may see, filtered here in the query rather than
 // in the page: what is not loaded cannot reach the browser, so dev tools cannot reveal it.
@@ -192,12 +203,22 @@ export const getSessionPredictions = async (
     return { status: "no-such-session" };
   }
 
+  const against = scoredAgainst(kind);
+  const order = against === "Starting Grid" ? found.startingGrid : found.officialClassification;
+  const top10 = order?.slice(0, TOP_10_SIZE) ?? null;
+  const scoredTop10 = top10 ? toTop10(top10) : null;
+
+  // Scores only come with every Member's Predictions, so before the Lock there are none to see.
   const visible: VisiblePredictions =
     sessionStateAt(found.locksAt, now) === "open"
       ? { state: "open", own: await findOwnPrediction(db, found.id, viewerId) }
-      : { state: "locked", members: await listMemberPredictions(db, found.id, viewerId) };
-  const against = scoredAgainst(kind);
-  const order = against === "Starting Grid" ? found.startingGrid : found.officialClassification;
+      : {
+          state: "locked",
+          members: (await listMemberPredictions(db, found.id, viewerId)).map((member) => ({
+            ...member,
+            score: scoredTop10 ? scoreSession(kind, scoredTop10, member.prediction) : null,
+          })),
+        };
 
   return {
     status: "found",
@@ -208,7 +229,7 @@ export const getSessionPredictions = async (
       visible,
       regularDrivers: await listRegularDrivers(db, season),
       scoredAgainst: against,
-      top10: order?.slice(0, TOP_10_SIZE) ?? null,
+      top10,
     },
   };
 };
