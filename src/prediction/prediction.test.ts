@@ -277,8 +277,8 @@ describe("getSessionPredictions", () => {
     expect(outcome.status === "found" && outcome.session.visible).toEqual({
       state: "locked",
       members: [
-        { nickname: "Ania", prediction: topTen },
-        { nickname: "Bartek", prediction: otherTopTen },
+        { nickname: "Ania", prediction: topTen, score: null },
+        { nickname: "Bartek", prediction: otherTopTen, score: null },
       ],
     });
   });
@@ -292,8 +292,8 @@ describe("getSessionPredictions", () => {
     expect(outcome.status === "found" && outcome.session.visible).toEqual({
       state: "locked",
       members: [
-        { nickname: "Ania", prediction: topTen },
-        { nickname: "Bartek", prediction: null },
+        { nickname: "Ania", prediction: topTen, score: null },
+        { nickname: "Bartek", prediction: null, score: null },
       ],
     });
   });
@@ -315,29 +315,29 @@ describe("getSessionPredictions", () => {
     expect(outcome).toEqual({ status: "no-such-session" });
   });
 
+  const AFTER_RACE = "2026-03-08T18:00:00Z";
+
+  // Stores Round 1's results the way the App Admin's refresh does.
+  const storeResults = (db: Database, raceResults: RaceResults) =>
+    refresh(
+      {
+        db,
+        resultsSource: createFakeResultsSource({ 2026: { schedule: [bahrain], regularDrivers, raceResults: { 1: raceResults } } }),
+        clock: at(AFTER_RACE),
+        appAdminEmails: [appAdmin.email],
+      },
+      appAdmin.id,
+    );
+
+  const sessionAfterRace = async (db: Database, kind: "Qualifying" | "Race") => {
+    const outcome = await getSessionPredictions({ db, clock: at(AFTER_RACE) }, ania.id, 1, kind);
+    if (outcome.status !== "found") {
+      throw new Error(`Expected the Session to be found, got ${outcome.status}.`);
+    }
+    return outcome.session;
+  };
+
   describe("Top 10", () => {
-    const AFTER_RACE = "2026-03-08T18:00:00Z";
-
-    // Stores Round 1's results the way the App Admin's refresh does.
-    const storeResults = (db: Database, raceResults: RaceResults) =>
-      refresh(
-        {
-          db,
-          resultsSource: createFakeResultsSource({ 2026: { schedule: [bahrain], regularDrivers, raceResults: { 1: raceResults } } }),
-          clock: at(AFTER_RACE),
-          appAdminEmails: [appAdmin.email],
-        },
-        appAdmin.id,
-      );
-
-    const sessionAfterRace = async (db: Database, kind: "Qualifying" | "Race") => {
-      const outcome = await getSessionPredictions({ db, clock: at(AFTER_RACE) }, ania.id, 1, kind);
-      if (outcome.status !== "found") {
-        throw new Error(`Expected the Session to be found, got ${outcome.status}.`);
-      }
-      return outcome.session;
-    };
-
     const top10Of = async (db: Database, kind: "Qualifying" | "Race") => (await sessionAfterRace(db, kind)).top10;
 
     it("scores Qualifying against the Starting Grid and the Race against its Official Classification", async () => {
@@ -367,6 +367,91 @@ describe("getSessionPredictions", () => {
       await storeResults(db, { officialClassification: driverIds, startingGrid: grid });
 
       expect(await top10Of(db, "Qualifying")).toEqual([...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)]);
+    });
+  });
+
+  describe("Session Scores", () => {
+    const predictBoth = async (db: Database, kind: "Qualifying" | "Race") => {
+      await savePrediction({ db, clock: at(BEFORE_LOCK) }, ania.id, { round: 1, kind, picks: topTen });
+      await savePrediction({ db, clock: at(BEFORE_LOCK) }, appAdmin.id, { round: 1, kind, picks: otherTopTen });
+    };
+
+    const scoresOf = async (db: Database, kind: "Qualifying" | "Race") => {
+      const { visible } = await sessionAfterRace(db, kind);
+      if (visible.state !== "locked") {
+        throw new Error("Expected the Session to be locked.");
+      }
+      return visible.members.map(({ nickname, score }) => ({ nickname, score }));
+    };
+
+    it("scores every Member's Race Prediction against the Official Classification", async () => {
+      const db = await syncedDatabase();
+      await predictBoth(db, "Race");
+      // The Starting Grid differs, so a score against it would differ too.
+      await storeResults(db, { officialClassification: driverIds, startingGrid: otherTopTen });
+
+      expect(await scoresOf(db, "Race")).toEqual([
+        // A Perfect Top 10: ten Exact Hits of 25 points, plus 50, times the Race's 3.
+        { nickname: "Ania", score: { points: (10 * 25 + 50) * 3, exactHits: 10 } },
+        // Picks 1–8 are each two places off the Top 10 (5 + 10 points), and 9–10 are outside it.
+        { nickname: "Bartek", score: { points: 8 * 15 * 3, exactHits: 0 } },
+      ]);
+    });
+
+    it("scores Qualifying against the Starting Grid, not the Official Classification", async () => {
+      const db = await syncedDatabase();
+      await predictBoth(db, "Qualifying");
+      await storeResults(db, { officialClassification: driverIds, startingGrid: otherTopTen });
+
+      expect(await scoresOf(db, "Qualifying")).toEqual([
+        // Ania's Picks 1–8 are each two places off the grid (5 + 10), and 9–10 are outside it.
+        { nickname: "Ania", score: { points: 8 * 15 * 2, exactHits: 0 } },
+        { nickname: "Bartek", score: { points: (10 * 25 + 50) * 2, exactHits: 10 } },
+      ]);
+    });
+
+    it("scores against grid numbers as published, so an empty slot stays empty", async () => {
+      const db = await syncedDatabase();
+      await predictBoth(db, "Qualifying");
+      const grid = [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 11)];
+      await storeResults(db, { officialClassification: driverIds, startingGrid: grid });
+
+      // Picks 1–6 are Exact Hits (25), 7–9 are one place off (5 + 14), and Pick 10 started 11th.
+      expect((await scoresOf(db, "Qualifying"))[0]).toEqual({
+        nickname: "Ania",
+        score: { points: (6 * 25 + 3 * 19) * 2, exactHits: 6 },
+      });
+    });
+
+    it("gives a Member without a Prediction 0 once results are in", async () => {
+      const db = await syncedDatabase();
+      await savePrediction({ db, clock: at(BEFORE_LOCK) }, ania.id, { round: 1, kind: "Race", picks: topTen });
+      await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
+
+      expect((await scoresOf(db, "Race"))[1]).toEqual({ nickname: "Bartek", score: { points: 0, exactHits: 0 } });
+    });
+
+    it("has no Session Scores until what the Session is scored against is published", async () => {
+      const db = await syncedDatabase();
+      await predictBoth(db, "Qualifying");
+      await predictBoth(db, "Race");
+
+      expect((await scoresOf(db, "Qualifying")).map(({ score }) => score)).toEqual([null, null]);
+      expect((await scoresOf(db, "Race")).map(({ score }) => score)).toEqual([null, null]);
+    });
+
+    it("changes the Session Scores when a refresh changes the results of a Round that is not final", async () => {
+      const db = await syncedDatabase();
+      await predictBoth(db, "Race");
+      await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
+
+      // A post-race penalty reorders the Official Classification.
+      await storeResults(db, { officialClassification: otherTopTen, startingGrid: driverIds });
+
+      expect(await scoresOf(db, "Race")).toEqual([
+        { nickname: "Ania", score: { points: 8 * 15 * 3, exactHits: 0 } },
+        { nickname: "Bartek", score: { points: (10 * 25 + 50) * 3, exactHits: 10 } },
+      ]);
     });
   });
 });
