@@ -80,7 +80,8 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // Domain modules never reach into the app directory.
+    // Domain modules never reach into the app directory. Scoring is left out because this entry
+    // would replace its stricter rule above (a later entry wins), and that rule already allows only ./ files.
     files: ["src/**/*.{ts,tsx}"],
     ignores: ["src/app/**", "src/ui/**", "src/scoring/**"],
     rules: {
