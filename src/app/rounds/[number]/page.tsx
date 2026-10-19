@@ -7,6 +7,7 @@ import type { RoundSession } from "../../../prediction/prediction";
 import { PicksList } from "../../../prediction/picks-list";
 import { PredictionForm } from "../../../prediction/prediction-form";
 import type { RegularDriver } from "../../../results-source/results-source";
+import { Card } from "../../../ui/card";
 
 const LockedSessionView = ({ session, regularDrivers }: { session: RoundSession; regularDrivers: RegularDriver[] }) => {
   if (!session.prediction) {
@@ -36,17 +37,19 @@ export default async function RoundPage({ params }: PageProps<"/rounds/[number]"
   const { round } = outcome;
 
   return (
-    <main>
-      <Link href="/">Calendar</Link>
-      <h1>
+    <main className="space-y-4">
+      <Link href="/rounds" className="text-sm text-text-muted">
+        Calendar
+      </Link>
+      <h1 className="text-2xl font-bold tabular-nums">
         Round {round.number}: {round.name}
       </h1>
       {round.sessions.map((session) => (
-        <section key={session.kind}>
-          <h2>
+        <Card key={session.kind} className="space-y-3">
+          <h2 className="text-lg font-semibold">
             <Link href={`/rounds/${round.number}/${session.kind}`}>{session.kind}</Link>
           </h2>
-          <p>
+          <p className="text-sm text-text-muted">
             {session.state === "open" ? "Locks" : "Locked"} <LocalTime iso={session.locksAt.toISOString()} />
           </p>
           {session.state === "locked" ? (
@@ -57,7 +60,7 @@ export default async function RoundPage({ params }: PageProps<"/rounds/[number]"
           ) : (
             <PredictionForm round={round.number} session={session} regularDrivers={round.regularDrivers} />
           )}
-        </section>
+        </Card>
       ))}
     </main>
   );

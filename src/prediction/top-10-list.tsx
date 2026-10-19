@@ -4,7 +4,7 @@ import type { DriverOrder, RegularDriver } from "../results-source/results-sourc
 export const Top10List = ({ top10, regularDrivers }: { top10: DriverOrder; regularDrivers: RegularDriver[] }) => {
   const nameOf = new Map(regularDrivers.map((driver) => [driver.driverId, `${driver.name} (${driver.code})`]));
   return (
-    <ol>
+    <ol className="list-decimal space-y-1 pl-8 marker:text-text-muted marker:tabular-nums">
       {/* A position is unique, and an empty slot has no driver to key on, so the index is the key. */}
       {top10.map((driverId, index) => (
         <li key={index}>{driverId === null ? "Empty slot" : (nameOf.get(driverId) ?? driverId)}</li>

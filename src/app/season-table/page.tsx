@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSignedInPlayer } from "../../auth/signed-in-player";
 import { getCurrentSeasonTable } from "../../league/current-league";
@@ -17,25 +16,32 @@ export default async function SeasonTablePage() {
 
   return (
     <main>
-      <Link href="/">F1 Predictor</Link>
-      <h1>Season Table</h1>
-      <table>
-        <thead>
+      <h1 className="mb-4 text-2xl font-bold">Season Table</h1>
+      <table className="w-full overflow-hidden rounded-lg bg-surface">
+        <thead className="text-left text-sm text-text-muted">
           <tr>
-            <th scope="col">Position</th>
-            <th scope="col">Member</th>
-            <th scope="col">Points</th>
-            <th scope="col">Exact Hits</th>
+            <th scope="col" className="p-3">
+              Position
+            </th>
+            <th scope="col" className="p-3">
+              Member
+            </th>
+            <th scope="col" className="p-3 text-right">
+              Points
+            </th>
+            <th scope="col" className="p-3 text-right">
+              Exact Hits
+            </th>
           </tr>
         </thead>
         <tbody>
           {/* Nicknames need not be unique, and the table never reorders, so the index is the key. */}
           {outcome.table.map(({ position, nickname, totalPoints, exactHits }, index) => (
-            <tr key={index}>
-              <td>{position}</td>
-              <td>{nickname}</td>
-              <td>{totalPoints}</td>
-              <td>{exactHits}</td>
+            <tr key={index} className="border-t border-border tabular-nums">
+              <td className="p-3">{position}</td>
+              <td className="p-3">{nickname}</td>
+              <td className="p-3 text-right font-semibold">{totalPoints}</td>
+              <td className="p-3 text-right">{exactHits}</td>
             </tr>
           ))}
         </tbody>

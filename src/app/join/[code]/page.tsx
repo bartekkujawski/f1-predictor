@@ -12,9 +12,9 @@ export default async function JoinPage({ params }: PageProps<"/join/[code]">) {
 
   if (!player) {
     return (
-      <main>
-        <h1>Join the League</h1>
-        <p>Sign in to join the League you were invited to.</p>
+      <main className="space-y-4">
+        <h1 className="text-2xl font-bold">Join the League</h1>
+        <p className="text-text-muted">Sign in to join the League you were invited to.</p>
         {/* Google sends the Player back to this same link, which then completes the join. */}
         <SignInWithGoogle returnTo={`/join/${encodeURIComponent(code)}`} />
       </main>
@@ -27,8 +27,8 @@ export default async function JoinPage({ params }: PageProps<"/join/[code]">) {
   }
 
   return (
-    <main>
-      <h1>Join the League</h1>
+    <main className="space-y-4">
+      <h1 className="text-2xl font-bold">Join the League</h1>
       <p role="alert">{INVALID_JOIN_CODE_MESSAGE}</p>
       <JoinForm />
     </main>

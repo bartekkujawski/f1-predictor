@@ -6,19 +6,20 @@ import { CreateLeagueForm } from "../../league/create-league-form";
 import { getCurrentLeagueJoinCode, inviteLink } from "../../league/current-league";
 import type { LeagueJoinCode } from "../../league/league";
 import { RefreshForm } from "../../refresh/refresh-form";
+import { Card } from "../../ui/card";
 
 const LeagueJoinCodeView = ({ league }: { league: LeagueJoinCode }) => {
   const link = inviteLink(league.joinCode);
   return (
-    <>
-      <p>{league.name}</p>
+    <div className="space-y-2">
+      <p className="font-semibold">{league.name}</p>
       <p>
-        Join Code: <code>{league.joinCode}</code>
+        Join Code: <code className="tabular-nums">{league.joinCode}</code>
       </p>
-      <p>
-        Invite link: <code>{link}</code> <CopyButton text={link} />
+      <p className="flex flex-wrap items-center gap-2">
+        Invite link: <code className="break-all">{link}</code> <CopyButton text={link} />
       </p>
-    </>
+    </div>
   );
 };
 
@@ -30,24 +31,24 @@ export default async function AdminPage() {
   const found = await getCurrentLeagueJoinCode(player.id);
 
   return (
-    <main>
-      <h1>App Admin</h1>
-      <section>
-        <h2>League</h2>
+    <main className="space-y-4">
+      <h1 className="text-2xl font-bold">App Admin</h1>
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">League</h2>
         {found.status === "found" ? (
           <LeagueJoinCodeView league={found.league} />
         ) : (
           <CreateLeagueForm />
         )}
-      </section>
-      <section>
-        <h2>Calendar and results</h2>
-        <p>
+      </Card>
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Calendar and results</h2>
+        <p className="text-text-muted">
           Sync the current Season&apos;s schedule, Regular Drivers and results from Jolpica. Rounds that are
           already final are left as they are.
         </p>
         <RefreshForm />
-      </section>
+      </Card>
     </main>
   );
 }
