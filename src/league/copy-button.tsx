@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "../ui/button";
 
 export const CopyButton = ({ text }: { text: string }) => {
   const [copied, setCopied] = useState(false);
@@ -9,8 +10,8 @@ export const CopyButton = ({ text }: { text: string }) => {
     setCopied(true);
   };
   return (
-    <button type="button" onClick={copy}>
+    <Button type="button" onClick={copy}>
       {copied ? "Copied" : "Copy"}
-    </button>
+    </Button>
   );
 };

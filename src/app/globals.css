@@ -32,4 +32,9 @@
   a {
     @apply underline-offset-4 hover:underline;
   }
+
+  input,
+  select {
+    @apply rounded-md border border-border bg-surface-raised px-3 py-2 text-text focus:border-text-muted focus:outline-none;
+  }
 }

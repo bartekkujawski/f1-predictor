@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Button } from "../ui/button";
 import { savePredictionFromForm } from "./actions";
 import type { RegularDriver } from "../results-source/results-source";
 import type { RoundSession } from "./prediction";
@@ -25,15 +26,15 @@ export const PredictionForm = ({
     setPicks((current) => current.map((pick, other) => (other === index ? driverId : pick)));
 
   return (
-    <form action={formAction}>
+    <form action={formAction} className="space-y-3">
       <input type="hidden" name="round" value={round} />
       <input type="hidden" name="kind" value={session.kind} />
-      <ol>
+      <ol className="space-y-2">
         {POSITIONS.map((position, index) => (
           <li key={position}>
-            <label>
-              P{position}{" "}
-              <select name="pick" value={picks[index]} onChange={(event) => choose(index, event.target.value)}>
+            <label className="flex items-center gap-3">
+              <span className="w-8 tabular-nums">P{position}</span>
+              <select className="flex-1" name="pick" value={picks[index]} onChange={(event) => choose(index, event.target.value)}>
                 <option value="">Choose a driver</option>
                 {regularDrivers.map((driver) => (
                   // A driver already picked at another position cannot be picked again.
@@ -50,9 +51,9 @@ export const PredictionForm = ({
           </li>
         ))}
       </ol>
-      <button type="submit" disabled={isPending}>
+      <Button type="submit" variant="primary" disabled={isPending}>
         {isPending ? "Saving…" : `Save ${session.kind} Prediction`}
-      </button>
+      </Button>
       {report && <p role="status">{report.message}</p>}
     </form>
   );
