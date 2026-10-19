@@ -1,17 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { isPlayerAppAdmin } from "../app-admin/signed-in-app-admin";
 import { getSignedInPlayer } from "../auth/signed-in-player";
 import { getCurrentCalendar } from "../calendar/current-calendar";
 import type { Calendar } from "../calendar/list-calendar";
 import HomePage from "./page";
 
-// The page reads the session, the calendar and the App Admin role through these modules, which
+// The page reads the session and the calendar through these modules, which
 // need a real request and database. Here the test decides what they answer.
 vi.mock("../auth/signed-in-player", () => ({ getSignedInPlayer: vi.fn() }));
-vi.mock("../auth/actions", () => ({ signInWithGoogle: vi.fn(), signOut: vi.fn() }));
+vi.mock("../auth/actions", () => ({ signInWithGoogle: vi.fn() }));
 vi.mock("../calendar/current-calendar", () => ({ getCurrentCalendar: vi.fn() }));
-vi.mock("../app-admin/signed-in-app-admin", () => ({ isPlayerAppAdmin: vi.fn() }));
 vi.mock("../league/actions", () => ({ joinFromForm: vi.fn() }));
 
 const ania = { id: "player-ania", nickname: "Anna Nowak" };
@@ -53,13 +51,12 @@ const renderHomePage = async (): Promise<string> => renderToStaticMarkup(await H
 describe("HomePage", () => {
   beforeEach(() => {
     vi.mocked(getCurrentCalendar).mockResolvedValue({ status: "listed", calendar });
-    vi.mocked(isPlayerAppAdmin).mockResolvedValue(false);
   });
 
   it("renders the app name as the main heading", async () => {
     vi.mocked(getSignedInPlayer).mockResolvedValue(null);
 
-    expect(await renderHomePage()).toContain("<h1>F1 Predictor</h1>");
+    expect(await renderHomePage()).toMatch(/<h1[^>]*>F1 Predictor<\/h1>/);
   });
 
   it("offers sign-in with Google when nobody is signed in, and no calendar", async () => {
@@ -68,18 +65,7 @@ describe("HomePage", () => {
     const html = await renderHomePage();
 
     expect(html).toContain("Sign in with Google");
-    expect(html).not.toContain("Sign out");
     expect(html).not.toContain("Bahrain Grand Prix");
-  });
-
-  it("shows the signed-in Player's nickname and a sign-out button", async () => {
-    vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
-
-    const html = await renderHomePage();
-
-    expect(html).toContain("Anna Nowak");
-    expect(html).toContain("Sign out");
-    expect(html).not.toContain("Sign in with Google");
   });
 
   it("shows the calendar until Home gets its own content", async () => {
@@ -97,21 +83,5 @@ describe("HomePage", () => {
     expect(html).toContain("Join the League first");
     expect(html).toContain('name="joinCode"');
     expect(html).not.toContain("Bahrain Grand Prix");
-  });
-
-  it("links to the App Admin page only for the App Admin", async () => {
-    vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
-    expect(await renderHomePage()).not.toContain('href="/admin"');
-
-    vi.mocked(isPlayerAppAdmin).mockResolvedValue(true);
-    expect(await renderHomePage()).toContain('href="/admin"');
-  });
-
-  it("links a Member to the Season Table, and a Player who is not a Member not", async () => {
-    vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
-    expect(await renderHomePage()).toContain('href="/season-table"');
-
-    vi.mocked(getCurrentCalendar).mockResolvedValue({ status: "not-a-member" });
-    expect(await renderHomePage()).not.toContain('href="/season-table"');
   });
 });
