@@ -10,7 +10,7 @@ const RoundView = ({ round, isNextOpen }: { round: CalendarRound; isNextOpen: bo
       className="rounded-lg border border-border bg-surface p-4 aria-[current=true]:border-accent"
     >
       <h3 className="font-semibold">
-        <Link href={`/rounds/${round.number}`} className="tabular-nums">
+        <Link href={`/rounds/${round.number}`}>
           Round {round.number}: {round.name}
         </Link>
         {isNextOpen && <strong className="ml-2 text-sm text-accent">(next open Round)</strong>}
@@ -29,7 +29,7 @@ const RoundView = ({ round, isNextOpen }: { round: CalendarRound; isNextOpen: bo
 
 export const CalendarView = ({ calendar }: { calendar: Calendar }) => (
   <section>
-    <h2 className="mb-3 text-lg font-semibold tabular-nums">Season {calendar.season}</h2>
+    <h2 className="mb-3 text-lg font-semibold">Season {calendar.season}</h2>
     {calendar.rounds.length === 0 ? (
       <Card>
         <p className="text-text-muted">The calendar has not been synced yet.</p>

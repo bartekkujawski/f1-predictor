@@ -41,7 +41,7 @@ export default async function RoundPage({ params }: PageProps<"/rounds/[number]"
       <Link href="/rounds" className="text-sm text-text-muted">
         Calendar
       </Link>
-      <h1 className="text-2xl font-bold tabular-nums">
+      <h1 className="text-2xl font-bold">
         Round {round.number}: {round.name}
       </h1>
       {round.sessions.map((session) => (

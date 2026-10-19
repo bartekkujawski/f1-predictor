@@ -64,7 +64,7 @@ export default async function SessionPage({ params }: PageProps<"/rounds/[number
 
   return (
     <main className="space-y-4">
-      <Link href={`/rounds/${session.round.number}`} className="text-sm text-text-muted tabular-nums">
+      <Link href={`/rounds/${session.round.number}`} className="text-sm text-text-muted">
         Round {session.round.number}: {session.round.name}
       </Link>
       <h1 className="text-2xl font-bold">{session.kind}</h1>

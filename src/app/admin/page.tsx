@@ -14,7 +14,7 @@ const LeagueJoinCodeView = ({ league }: { league: LeagueJoinCode }) => {
     <div className="space-y-2">
       <p className="font-semibold">{league.name}</p>
       <p>
-        Join Code: <code className="tabular-nums">{league.joinCode}</code>
+        Join Code: <code>{league.joinCode}</code>
       </p>
       <p className="flex flex-wrap items-center gap-2">
         Invite link: <code className="break-all">{link}</code> <CopyButton text={link} />
