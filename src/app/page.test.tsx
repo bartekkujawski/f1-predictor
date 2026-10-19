@@ -119,4 +119,12 @@ describe("HomePage", () => {
     vi.mocked(isPlayerAppAdmin).mockResolvedValue(true);
     expect(await renderHomePage()).toContain('href="/admin"');
   });
+
+  it("links a Member to the Season Table, and a Player who is not a Member not", async () => {
+    vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
+    expect(await renderHomePage()).toContain('href="/season-table"');
+
+    vi.mocked(getCurrentCalendar).mockResolvedValue({ status: "not-a-member" });
+    expect(await renderHomePage()).not.toContain('href="/season-table"');
+  });
 });
