@@ -1,13 +1,13 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { findNextRoundStart, isFinalRound } from "../calendar/round";
-import { type ScoredAgainst, scoredAgainst, type SessionKind, type SessionState, sessionStateAt } from "../calendar/session";
+import { orderScoredAgainst, type ScoredAgainst, scoredAgainst, type SessionKind, type SessionState, sessionStateAt } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { member, player, prediction, regularDriver, round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
 import type { DriverOrder, RegularDriver } from "../results-source/results-source";
-import { type Prediction, scoreSession, type SessionScore, TOP_10_SIZE, type Top10 } from "../scoring/session-score";
+import { type Prediction, scoreSession, type SessionScore, TOP_10_SIZE, toTop10 } from "../scoring/session-score";
 
 export type PredictionDependencies = { db: Database; clock: Clock };
 
@@ -178,10 +178,6 @@ const listMemberPredictions = async (
     .orderBy(asc(player.nickname));
 };
 
-// The scoring module's Top 10: position → Regular Driver, with empty slots left out.
-const toTop10 = (order: DriverOrder): Top10 =>
-  new Map(order.flatMap((driverId, index) => (driverId === null ? [] : [[index + 1, driverId] as const])));
-
 // The Predictions of one Session that the viewer may see, filtered here in the query rather than
 // in the page: what is not loaded cannot reach the browser, so dev tools cannot reveal it.
 export const getSessionPredictions = async (
@@ -211,8 +207,7 @@ export const getSessionPredictions = async (
     return { status: "no-such-session" };
   }
 
-  const against = scoredAgainst(kind);
-  const order = against === "Starting Grid" ? found.startingGrid : found.officialClassification;
+  const order = orderScoredAgainst(kind, found);
   // Only a Session still waiting for its Top 10 can turn out to be cancelled.
   const top10: Top10State = order
     ? { state: "published", order: order.slice(0, TOP_10_SIZE) }
@@ -242,7 +237,7 @@ export const getSessionPredictions = async (
       locksAt: found.locksAt,
       visible,
       regularDrivers: await listRegularDrivers(db, season),
-      scoredAgainst: against,
+      scoredAgainst: scoredAgainst(kind),
       top10,
     },
   };
