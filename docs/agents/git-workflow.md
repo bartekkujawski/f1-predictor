@@ -18,6 +18,17 @@ One issue, one branch, one PR. `main` only changes through merged PRs.
 - Check CI with `gh pr checks <number>`. A job stuck in "Queued" with no workflow change is usually a GitHub Actions
   incident: check githubstatus.com before debugging.
 
+## Prototype branches
+
+The one exception to "one branch, one PR". A `/prototype` answers a design question with throwaway code,
+which never reaches `main` but is kept as a primary source for whoever implements the decision.
+
+- Branch from `origin/main` as above, named `prototype/<topic>` (e.g. `prototype/top-10-picker`).
+- Commit the prototype and push it. Never open a PR for it.
+- Put the verdict (the question it settled and the answer) and a link to the branch on the issue that
+  implements the decision.
+- Never delete it. `git branch -d` refuses because it is unmerged; do not force it with `-D`.
+
 ## After a merge
 
 ```sh
