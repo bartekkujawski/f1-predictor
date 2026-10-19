@@ -16,6 +16,18 @@ From the inside out:
    Player, calls a use-case, renders its outcome. It may hide a control (`isPlayerAppAdmin`), but the
    use-case still checks the rule itself.
 
+## Code layout
+
+- **UI primitives** (`src/ui/`): button, card, menu, navigation. Presentation only: they know
+  nothing of the domain and take plain props.
+- **Domain components** live in their domain module next to its use-cases (`src/calendar/calendar-view.tsx`,
+  `src/prediction/prediction-form.tsx`).
+- **The app frame** (`src/app/layout.tsx`, `src/app/app-header.tsx`): the main navigation (bottom bar
+  on narrow screens, header links on wide ones), the Player's menu, and the 640 px content column.
+
+Dependencies point one way: **pages → domain modules → UI primitives**. UI primitives never import a
+domain module, and domain modules never import from `src/app/`; ESLint enforces both.
+
 ## Use-case shape
 
 ```ts
