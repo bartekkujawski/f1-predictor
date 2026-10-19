@@ -89,6 +89,8 @@ Tests go through a module's public interface and assert on outcomes, not on SQL 
   from the live API rather than writing them by hand: hand-written fixtures once missed the
   practice-only drivers in the Season driver list. The suite makes no network calls.
 - **Pages:** `renderToStaticMarkup`, with `vi.mock` on `signed-in-player` and the `current-*`
-  modules (`src/app/page.test.tsx`).
+  modules (`src/app/page.test.tsx`). The root layout is tested the same way
+  (`src/app/layout.test.tsx`), with `next/font` and `usePathname` mocked; it also covers which
+  navigation link is marked current.
 - **Client forms and the Better Auth wiring** hold no rules, so they have no tests; typecheck and
   lint cover them.
