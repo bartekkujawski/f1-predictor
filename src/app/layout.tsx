@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Titillium_Web } from "next/font/google";
 import "./globals.css";
+
+// Titillium Web is not a variable font, so each weight in use is listed.
+const titilliumWeb = Titillium_Web({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "600", "700"],
+  variable: "--font-titillium-web",
+});
 
 export const metadata: Metadata = {
   title: "F1 Predictor",
@@ -8,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en">
+    <html lang="en" className={titilliumWeb.variable}>
       <body>
         {children}
         <footer>
