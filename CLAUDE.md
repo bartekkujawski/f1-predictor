@@ -10,9 +10,9 @@ Ten kod musi dać się obronić na rozmowie rekrutacyjnej.
 
 - Autor ma rozumieć każdą zmianę przed commitem. Przy większej zmianie wyjaśnij *dlaczego*,
   nie tylko *co*, i wskaż miejsca, które warto przeczytać uważnie.
-- Małe kroki: jedna zmiana, jeden commit. Nie generuj całych funkcji naraz bez prośby.
-- Nie commituj i nie pushuj bez wyraźnej prośby.
-- Nazwy w kodzie biorą się ze słownika domeny (`CONTEXT.md`, gdy powstanie), nie z frameworka.
+- Małe kroki: jedna zmiana, jeden commit. Poza `/implement-issue` nie generuj całych funkcji naraz bez prośby.
+- W `/implement-issue` agent sam commituje każdy krok. Poza nim commituj tylko na prośbę. Push i PR zawsze tylko na wyraźną prośbę.
+- Nazwy w kodzie biorą się ze słownika domeny (`CONTEXT.md`), nie z frameworka.
 
 ## Język
 

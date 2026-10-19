@@ -12,6 +12,8 @@ Use /tdd where possible, at pre-agreed seams.
 
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
-Once done, use /code-review to review the work.
+Commit each step yourself as soon as it is green: one change, one commit, on the issue's branch.
 
-Commit your work to the current branch.
+Once done, use /code-review to review the work. Each fix from the review is a commit of its own.
+
+Push and open a PR only when the user asks.
