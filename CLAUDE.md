@@ -8,7 +8,7 @@ na starcie kwalifikacji, wyniki przychodzą z API (Jolpica), aplikacja liczy pun
 Autor uczy się full-stack TypeScript i szuka pierwszej pracy jako developer.
 Ten kod musi dać się obronić na rozmowie rekrutacyjnej.
 
-- Autor ma rozumieć każdą zmianę przed commitem. Przy większej zmianie wyjaśnij *dlaczego*,
+- Autor ma rozumieć każdą zmianę przed PR. Przy większej zmianie wyjaśnij *dlaczego*,
   nie tylko *co*, i wskaż miejsca, które warto przeczytać uważnie.
 - Małe kroki: jedna zmiana, jeden commit. Poza `/implement-issue` nie generuj całych funkcji naraz bez prośby.
 - W `/implement-issue` agent sam commituje każdy krok. Poza nim commituj tylko na prośbę. Push i PR zawsze tylko na wyraźną prośbę.
