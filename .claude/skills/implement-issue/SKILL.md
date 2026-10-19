@@ -16,4 +16,6 @@ Commit each step yourself as soon as it is green: one change, one commit, on the
 
 Once done, use /code-review to review the work. Each fix from the review is a commit of its own.
 
+For every review finding the user decides to leave for later, open an issue labelled `needs-triage` (see `docs/agents/issue-tracker.md`). Quote the finding and the files it names. You are done when every finding is either fixed in a commit or has an issue, and your final message lists those issue numbers.
+
 Push and open a PR only when the user asks.
