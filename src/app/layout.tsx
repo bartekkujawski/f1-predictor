@@ -29,8 +29,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       {/* On a narrow screen the bottom padding keeps the end of the page clear of the bottom bar. */}
       <body className={player ? "pb-16 md:pb-0" : undefined}>
         {player && <AppHeader player={player} isAppAdmin={isAppAdmin} />}
-        <div className="mx-auto max-w-160 px-4 py-6">{children}</div>
-        <footer className="mx-auto max-w-160 px-4 pb-6 text-xs text-text-muted">
+        <div className="content-column py-6">{children}</div>
+        <footer className="content-column pb-6 text-xs text-text-muted">
           <p>
             Schedule and results from the <a href="https://github.com/jolpica/jolpica-f1">Jolpica F1 API</a>,
             licensed under{" "}

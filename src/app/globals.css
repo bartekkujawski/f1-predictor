@@ -20,6 +20,13 @@
   --color-outside: #6b7280;
 }
 
+/* The ~640 px column the app's content, header and bottom bar line up on. */
+@utility content-column {
+  margin-inline: auto;
+  max-width: 40rem;
+  padding-inline: 1rem;
+}
+
 @layer base {
   html {
     color-scheme: dark;

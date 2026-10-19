@@ -42,7 +42,7 @@ export const BottomNavigation = ({ links }: { links: NavigationLink[] }) => (
   <nav aria-label="Main" className="fixed inset-x-0 bottom-0 border-t border-border bg-surface md:hidden">
     <NavigationLinks
       links={links}
-      listClassName="mx-auto flex max-w-160"
+      listClassName="content-column flex"
       itemClassName="flex-1"
       linkClassName="block border-t-2 border-transparent py-3 text-center text-sm text-text-muted hover:no-underline aria-[current=page]:border-accent aria-[current=page]:font-semibold aria-[current=page]:text-text"
     />
