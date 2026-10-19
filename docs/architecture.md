@@ -16,6 +16,19 @@ From the inside out:
    Player, calls a use-case, renders its outcome. It may hide a control (`isPlayerAppAdmin`), but the
    use-case still checks the rule itself.
 
+## Code layout
+
+- **UI primitives** (`src/ui/`): button, card, menu, navigation. Presentation only: they know
+  nothing of the domain and take plain props. They may use the framework (`next/link`, and
+  `usePathname` to mark the current link), since the framework is not the domain.
+- **Domain components** live in their domain module next to its use-cases (`src/calendar/calendar-view.tsx`,
+  `src/prediction/prediction-form.tsx`).
+- **The app frame** (`src/app/layout.tsx`, `src/app/app-header.tsx`): the main navigation (bottom bar
+  on narrow screens, header links on wide ones), the Player's menu, and the 640 px content column.
+
+Dependencies point one way: **pages → domain modules → UI primitives**. UI primitives never import a
+domain module, and domain modules never import from `src/app/`; ESLint enforces both.
+
 ## Use-case shape
 
 ```ts
@@ -76,6 +89,8 @@ Tests go through a module's public interface and assert on outcomes, not on SQL 
   from the live API rather than writing them by hand: hand-written fixtures once missed the
   practice-only drivers in the Season driver list. The suite makes no network calls.
 - **Pages:** `renderToStaticMarkup`, with `vi.mock` on `signed-in-player` and the `current-*`
-  modules (`src/app/page.test.tsx`).
+  modules (`src/app/page.test.tsx`). The root layout is tested the same way
+  (`src/app/layout.test.tsx`), with `next/font` and `usePathname` mocked; it also covers which
+  navigation link is marked current.
 - **Client forms and the Better Auth wiring** hold no rules, so they have no tests; typecheck and
   lint cover them.

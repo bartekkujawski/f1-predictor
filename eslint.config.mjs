@@ -62,6 +62,42 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // Dependencies point one way: pages -> domain modules -> UI primitives (docs/architecture.md).
+    files: ["src/ui/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(\\.\\./|@/)",
+              message: "UI primitives know nothing of the domain: import only the UI module's own files (./...) and packages.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Domain modules never reach into the app directory. Scoring is left out because this entry
+    // would replace its stricter rule above (a later entry wins), and that rule already allows only ./ files.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/app/**", "src/ui/**", "src/scoring/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(\\.\\./app/|@/app/)",
+              message: "Domain modules never import from the app directory: pages import domain modules, not the other way.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);
 

@@ -8,6 +8,7 @@ import { PicksList } from "../../../../prediction/picks-list";
 import type { SessionPredictions } from "../../../../prediction/prediction";
 import { Top10List } from "../../../../prediction/top-10-list";
 import type { SessionScore } from "../../../../scoring/session-score";
+import { Card } from "../../../../ui/card";
 
 // Shown until what the Session is scored against is published, instead of a Session Score of 0 for
 // everyone. The Starting Grid comes with the Race results (ADR-0008), so Qualifying waits for the Race.
@@ -24,20 +25,20 @@ const CANCELLED: Record<ScoredAgainst, string> = {
 };
 
 const SessionScoreView = ({ score }: { score: SessionScore }) => (
-  <p>
+  <p className="text-sm text-text-muted tabular-nums">
     {score.points} points, {score.exactHits} {score.exactHits === 1 ? "Exact Hit" : "Exact Hits"}
   </p>
 );
 
 const Top10View = ({ session: { top10, scoredAgainst, regularDrivers } }: { session: SessionPredictions }) => (
-  <section>
-    <h2>Top 10 of the {scoredAgainst}</h2>
+  <Card className="space-y-3">
+    <h2 className="text-lg font-semibold">Top 10 of the {scoredAgainst}</h2>
     {top10.state === "published" ? (
       <Top10List top10={top10.order} regularDrivers={regularDrivers} />
     ) : (
-      <p>{(top10.state === "cancelled" ? CANCELLED : NOT_PUBLISHED_YET)[scoredAgainst]}</p>
+      <p className="text-text-muted">{(top10.state === "cancelled" ? CANCELLED : NOT_PUBLISHED_YET)[scoredAgainst]}</p>
     )}
-  </section>
+  </Card>
 );
 
 // One Session's Predictions: the viewer's own until the Lock, every Member's from the Lock on.
@@ -62,40 +63,42 @@ export default async function SessionPage({ params }: PageProps<"/rounds/[number
   const { session } = outcome;
 
   return (
-    <main>
-      <Link href={`/rounds/${session.round.number}`}>
+    <main className="space-y-4">
+      <Link href={`/rounds/${session.round.number}`} className="text-sm text-text-muted">
         Round {session.round.number}: {session.round.name}
       </Link>
-      <h1>{session.kind}</h1>
+      <h1 className="text-2xl font-bold">{session.kind}</h1>
       {session.visible.state === "open" ? (
         <>
-          <p>
+          <p className="text-text-muted">
             Other Members&apos; Predictions appear at the Lock, <LocalTime iso={session.locksAt.toISOString()} />.
           </p>
-          <h2>Your Prediction</h2>
-          {session.visible.own ? (
-            <PicksList prediction={session.visible.own} regularDrivers={session.regularDrivers} />
-          ) : (
-            <p>You have no Prediction for this Session yet.</p>
-          )}
+          <Card className="space-y-3">
+            <h2 className="text-lg font-semibold">Your Prediction</h2>
+            {session.visible.own ? (
+              <PicksList prediction={session.visible.own} regularDrivers={session.regularDrivers} />
+            ) : (
+              <p className="text-text-muted">You have no Prediction for this Session yet.</p>
+            )}
+          </Card>
         </>
       ) : (
         <>
-          <p>
+          <p className="text-text-muted">
             Locked <LocalTime iso={session.locksAt.toISOString()} />.
           </p>
           <Top10View session={session} />
           {/* Nicknames need not be unique, and the list never reorders, so the index is the key. */}
           {session.visible.members.map(({ nickname, prediction, score }, index) => (
-            <section key={index}>
-              <h2>{nickname}</h2>
+            <Card key={index} className="space-y-2">
+              <h2 className="text-lg font-semibold">{nickname}</h2>
               {score && <SessionScoreView score={score} />}
               {prediction ? (
                 <PicksList prediction={prediction} regularDrivers={session.regularDrivers} />
               ) : (
-                <p>No Prediction.</p>
+                <p className="text-text-muted">No Prediction.</p>
               )}
-            </section>
+            </Card>
           ))}
         </>
       )}

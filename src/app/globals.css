@@ -1,7 +1,47 @@
-body {
-  font-family: Arial, Helvetica, sans-serif;
+@import "tailwindcss";
+
+/* The palette from spec #32: dark only, red reserved for primary actions and Open Sessions. */
+@theme {
+  --font-sans: var(--font-titillium-web), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: #0b0b0f;
+  --color-surface: #16161d;
+  --color-surface-raised: #20202a;
+  --color-border: #2c2c38;
+  --color-text: #f2f2f5;
+  --color-text-muted: #9a9aa8;
+
+  --color-accent: #e10600;
+  --color-accent-hover: #ff1e14;
+
+  /* Pick marks, always shown with an icon or text as well. */
+  --color-exact-hit: #22c55e;
+  --color-in-top-10: #eab308;
+  --color-outside: #6b7280;
 }
 
-main {
-  padding: 2rem;
+/* The ~640 px column the app's content, header and bottom bar line up on. */
+@utility content-column {
+  margin-inline: auto;
+  max-width: 40rem;
+  padding-inline: 1rem;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background font-sans text-text antialiased;
+  }
+
+  a {
+    @apply underline-offset-4 hover:underline;
+  }
+
+  input,
+  select {
+    @apply rounded-md border border-border bg-surface-raised px-3 py-2 text-text focus:border-text-muted focus:outline-none;
+  }
 }

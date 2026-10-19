@@ -5,7 +5,7 @@ import type { RegularDriver } from "../results-source/results-source";
 export const PicksList = ({ prediction, regularDrivers }: { prediction: Prediction; regularDrivers: RegularDriver[] }) => {
   const nameOf = new Map(regularDrivers.map((driver) => [driver.driverId, `${driver.name} (${driver.code})`]));
   return (
-    <ol>
+    <ol className="list-decimal space-y-1 pl-8 marker:text-text-muted marker:tabular-nums">
       {prediction.map((driverId) => (
         <li key={driverId}>{nameOf.get(driverId) ?? driverId}</li>
       ))}
