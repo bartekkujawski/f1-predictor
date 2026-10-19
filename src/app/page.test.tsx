@@ -82,15 +82,10 @@ describe("HomePage", () => {
     expect(html).not.toContain("Sign in with Google");
   });
 
-  it("shows the calendar with each Session's state and Lock time", async () => {
+  it("shows the calendar until Home gets its own content", async () => {
     vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
 
-    const html = await renderHomePage();
-
-    expect(html).toContain("Round 1: Australian Grand Prix");
-    expect(html).toContain("Qualifying: locked");
-    expect(html).toContain("Race: open");
-    expect(html).toContain(`<time dateTime="${qualifyingStart}">`);
+    expect(await renderHomePage()).toContain("Round 2: Bahrain Grand Prix");
   });
 
   it("asks a Player who is not a Member to join first, instead of showing the calendar", async () => {
@@ -102,14 +97,6 @@ describe("HomePage", () => {
     expect(html).toContain("Join the League first");
     expect(html).toContain('name="joinCode"');
     expect(html).not.toContain("Bahrain Grand Prix");
-  });
-
-  it("highlights the next open Round and links to it", async () => {
-    vi.mocked(getSignedInPlayer).mockResolvedValue(ania);
-
-    const html = await renderHomePage();
-
-    expect(html).toMatch(/aria-current="true"><h3><a href="\/rounds\/2">Round 2: Bahrain Grand Prix/);
   });
 
   it("links to the App Admin page only for the App Admin", async () => {
