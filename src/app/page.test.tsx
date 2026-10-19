@@ -14,36 +14,11 @@ vi.mock("../league/actions", () => ({ joinFromForm: vi.fn() }));
 
 const ania = { id: "player-ania", nickname: "Anna Nowak" };
 
-const session = (kind: "Qualifying" | "Race", startsAt: string, locksAt: string, state: "open" | "locked") => ({
-  kind,
-  startsAt: new Date(startsAt),
-  locksAt: new Date(locksAt),
-  state,
-});
-
-const qualifyingStart = "2026-03-07T15:00:00.000Z";
-
+// Home shows the calendar for now; the Calendar page's own test covers how it renders.
 const calendar: Calendar = {
   season: 2026,
   nextOpenRound: 2,
-  rounds: [
-    {
-      number: 1,
-      name: "Australian Grand Prix",
-      sessions: [
-        session("Qualifying", "2026-02-28T05:00:00Z", "2026-02-28T05:00:00Z", "locked"),
-        session("Race", "2026-03-01T04:00:00Z", "2026-02-28T05:00:00Z", "locked"),
-      ],
-    },
-    {
-      number: 2,
-      name: "Bahrain Grand Prix",
-      sessions: [
-        session("Qualifying", qualifyingStart, qualifyingStart, "open"),
-        session("Race", "2026-03-08T15:00:00Z", qualifyingStart, "open"),
-      ],
-    },
-  ],
+  rounds: [{ number: 2, name: "Bahrain Grand Prix", sessions: [] }],
 };
 
 const renderHomePage = async (): Promise<string> => renderToStaticMarkup(await HomePage());
