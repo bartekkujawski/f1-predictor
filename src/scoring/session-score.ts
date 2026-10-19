@@ -6,6 +6,10 @@ export type RegularDriverId = string;
 // A missing key is an empty slot (ADR-0008). Positions beyond 10 may be passed and score 0.
 export type Top10 = ReadonlyMap<number, RegularDriverId>;
 
+// A stored order as a Top10: index 0 is P1, and a null element is an empty slot, left out.
+export const toTop10 = (order: readonly (RegularDriverId | null)[]): Top10 =>
+  new Map(order.flatMap((driverId, index) => (driverId === null ? [] : [[index + 1, driverId] as const])));
+
 // Ten different Regular Drivers in predicted order; index 0 is P1.
 // Not validated here: a Prediction is checked when it is saved (docs/rules.md),
 // so the scoring module trusts its input.

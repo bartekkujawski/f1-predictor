@@ -31,7 +31,10 @@ export default async function HomePage() {
       </form>
       {isAppAdmin && <Link href="/admin">App Admin</Link>}
       {calendarOutcome.status === "listed" ? (
-        <CalendarView calendar={calendarOutcome.calendar} />
+        <>
+          <Link href="/season-table">Season Table</Link>
+          <CalendarView calendar={calendarOutcome.calendar} />
+        </>
       ) : (
         <section>
           <h2>Join the League first</h2>

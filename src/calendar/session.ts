@@ -1,4 +1,5 @@
 import { session } from "../db/schema";
+import type { DriverOrder } from "../results-source/results-source";
 
 // The kinds of Session the calendar holds. The scoring module's own SessionKind also accepts the
 // Sprint, which the calendar gains in Part 2.
@@ -19,3 +20,9 @@ export type ScoredAgainst = "Starting Grid" | "Official Classification";
 
 export const scoredAgainst = (kind: SessionKind): ScoredAgainst =>
   kind === "Qualifying" ? "Starting Grid" : "Official Classification";
+
+// The stored order a Session is scored against, or null while it is not published.
+export const orderScoredAgainst = (
+  kind: SessionKind,
+  orders: { officialClassification: DriverOrder | null; startingGrid: DriverOrder | null },
+): DriverOrder | null => (scoredAgainst(kind) === "Starting Grid" ? orders.startingGrid : orders.officialClassification);
