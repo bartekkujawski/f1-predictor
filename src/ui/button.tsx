@@ -6,7 +6,7 @@ const variants = {
   secondary: "border border-border bg-surface-raised text-text hover:border-text-muted",
 };
 
-export type ButtonVariant = keyof typeof variants;
+type ButtonVariant = keyof typeof variants;
 
 export const Button = ({
   variant = "secondary",
