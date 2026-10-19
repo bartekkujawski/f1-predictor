@@ -110,6 +110,25 @@ describe("getSeasonTable", () => {
     });
   });
 
+  it("ranks Members on equal points by more Exact Hits", async () => {
+    const { db } = await syncedDatabase();
+    // A Perfect Top 10 in Qualifying: ten Exact Hits of 25, plus 50, times 2.
+    await predict(db, ania.id, 1, "Qualifying", topTen);
+    // Eight Exact Hits in the Race and two drivers outside the Top 10: 8 × 25, times 3. Also 600.
+    await predict(db, appAdmin.id, 1, "Race", [...topTen.slice(0, 8), "stroll", "gasly"]);
+    await refreshAt(db, AFTER_ROUND_1_RACE, { 1: results });
+
+    const outcome = await getSeasonTable({ db, clock: at(AFTER_ROUND_1_RACE) }, appAdmin.id);
+
+    expect(outcome).toEqual({
+      status: "found",
+      table: [
+        { position: 1, nickname: "Ania", totalPoints: 600, exactHits: 10 },
+        { position: 2, nickname: "Bartek", totalPoints: 600, exactHits: 8 },
+      ],
+    });
+  });
+
   it("adds nothing for a Session whose results are not published yet", async () => {
     const { db } = await syncedDatabase();
     await predict(db, ania.id, 1, "Race", otherTopTen);

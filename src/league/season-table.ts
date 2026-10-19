@@ -10,10 +10,10 @@ import { findMemberLeague } from "./league";
 
 export type SeasonTableDependencies = { db: Database; clock: Clock };
 
-// One Member's place in the Season Table, shown by nickname.
-export type SeasonTableEntry = Omit<SeasonTableRow, "memberId"> & { nickname: string };
+// A Season Table row as a Member sees it: by nickname rather than by Player id.
+export type NamedSeasonTableRow = Omit<SeasonTableRow, "memberId"> & { nickname: string };
 
-export type SeasonTableOutcome = { status: "not-a-member" } | { status: "found"; table: SeasonTableEntry[] };
+export type SeasonTableOutcome = { status: "not-a-member" } | { status: "found"; table: NamedSeasonTableRow[] };
 
 // Every Member of the viewer's League, by nickname, so Members tied in the table keep a fixed order.
 // Part 1 has exactly one League, as in listMemberPredictions.
@@ -73,8 +73,16 @@ export const getSeasonTable = async (
     })),
   );
   const nicknames = new Map(members.map(({ playerId, nickname }) => [playerId, nickname]));
+  const nicknameOf = (memberId: string): string => {
+    const nickname = nicknames.get(memberId);
+    // Every row comes from a listed Member, so this would be a bug, not a state to show.
+    if (nickname === undefined) {
+      throw new Error(`No nickname for Member ${memberId}.`);
+    }
+    return nickname;
+  };
   return {
     status: "found",
-    table: rows.map(({ memberId, ...row }) => ({ ...row, nickname: nicknames.get(memberId) ?? "" })),
+    table: rows.map(({ memberId, ...row }) => ({ ...row, nickname: nicknameOf(memberId) })),
   };
 };
