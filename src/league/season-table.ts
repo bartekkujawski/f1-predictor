@@ -1,5 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { seasonAt } from "../calendar/season";
 import { orderScoredAgainst } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
@@ -36,7 +37,7 @@ export const getSeasonTable = async (
   if (!(await findMemberLeague({ db }, viewerId))) {
     return { status: "not-a-member" };
   }
-  const season = clock.now().getUTCFullYear();
+  const season = seasonAt(clock.now());
 
   const members = await listMembers(db, viewerId);
   const sessions = await db
