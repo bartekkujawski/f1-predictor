@@ -24,6 +24,10 @@ Rozmowa po polsku. Kod, nazwy, commity i README po angielsku.
 
 Issues live in GitHub Issues for `bartekkujawski/f1-predictor` (via `gh` CLI). See `docs/agents/issue-tracker.md`.
 
+### Git workflow
+
+Branches, PRs and cleanup after a merge: `docs/agents/git-workflow.md`. Read before creating a branch, pushing or deleting one.
+
 ### Triage labels
 
 Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
