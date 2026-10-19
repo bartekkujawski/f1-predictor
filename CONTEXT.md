@@ -55,6 +55,10 @@ The moment a Session stops accepting Predictions: the start of the qualifying th
 (Sprint Qualifying for the Sprint, Qualifying for Qualifying and the Race).
 _Avoid_: Deadline, cutoff, close
 
+**Scored Session**:
+A Session whose Top 10 is published, so it has Session Scores. Its scores are provisional until
+its Round is a Final Round.
+
 **Cancelled Session**:
 A Session that produced no Official Classification (for Qualifying: no Starting Grid).
 Everyone scores 0 for it. It is detected once its Round is a Final Round: a Session still without
@@ -65,6 +69,11 @@ what it is scored against by then is cancelled. Before that, its results are onl
 **Regular Driver**:
 A driver on the Season's list of race seats. Predictions only ever name Regular Drivers.
 _Avoid_: Driver (when the distinction matters), racer
+
+**Team**:
+The constructor whose race seat a Regular Driver holds in a Season. It belongs to the seat, not
+the person: a substitute drives for the same Team.
+_Avoid_: Constructor, car
 
 **Substitution**:
 A record that, in a given Round, another driver races in place of a Regular Driver. The
