@@ -4,6 +4,7 @@ import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
 import { type SessionKind, type SessionState, sessionStateAt } from "./session";
+import { seasonAt } from "./season";
 
 export type CalendarSession = {
   kind: SessionKind;
@@ -32,7 +33,7 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId
     return { status: "not-a-member" };
   }
   const now = clock.now();
-  const season = now.getUTCFullYear();
+  const season = seasonAt(now);
 
   const rows = await db
     .select({

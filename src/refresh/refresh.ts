@@ -2,6 +2,7 @@ import { type Column, and, asc, eq, gt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { isAppAdmin } from "../app-admin/app-admin";
 import { isFinalRound } from "../calendar/round";
+import { seasonAt } from "../calendar/season";
 import type { SessionKind } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
@@ -193,7 +194,7 @@ export const refresh = async (
   }
 
   const now = clock.now();
-  const season = now.getUTCFullYear();
+  const season = seasonAt(now);
   const errors: string[] = [];
 
   // Only the fetch is caught: a database failure still stops the refresh.

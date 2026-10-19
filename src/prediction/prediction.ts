@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { findNextRoundStart, isFinalRound } from "../calendar/round";
+import { seasonAt } from "../calendar/season";
 import { orderScoredAgainst, type ScoredAgainst, scoredAgainst, type SessionKind, type SessionState, sessionStateAt } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
@@ -112,7 +113,7 @@ export const getPlayerPredictions = async (
     return { status: "not-a-member" };
   }
   const now = clock.now();
-  const season = now.getUTCFullYear();
+  const season = seasonAt(now);
 
   const rows = await db
     .select({
@@ -190,7 +191,7 @@ export const getSessionPredictions = async (
     return { status: "not-a-member" };
   }
   const now = clock.now();
-  const season = now.getUTCFullYear();
+  const season = seasonAt(now);
 
   const [found] = await db
     .select({
@@ -254,7 +255,7 @@ export const savePrediction = async (
     return { status: "not-a-member" };
   }
   const now = clock.now();
-  const season = now.getUTCFullYear();
+  const season = seasonAt(now);
 
   const [found] = await db
     .select({ id: session.id, locksAt: session.locksAt })
