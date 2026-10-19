@@ -19,7 +19,8 @@ From the inside out:
 ## Code layout
 
 - **UI primitives** (`src/ui/`): button, card, menu, navigation. Presentation only: they know
-  nothing of the domain and take plain props.
+  nothing of the domain and take plain props. They may use the framework (`next/link`, and
+  `usePathname` to mark the current link), since the framework is not the domain.
 - **Domain components** live in their domain module next to its use-cases (`src/calendar/calendar-view.tsx`,
   `src/prediction/prediction-form.tsx`).
 - **The app frame** (`src/app/layout.tsx`, `src/app/app-header.tsx`): the main navigation (bottom bar
