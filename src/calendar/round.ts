@@ -1,6 +1,7 @@
 import { and, asc, eq, gt } from "drizzle-orm";
 import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
+import type { SessionKind } from "./session";
 
 // A Round becomes final when the next Round starts (CONTEXT.md, "Final Round"). Practice is not a
 // Session, so the next Round's first Session, its Qualifying, is where it starts. The last Round has
@@ -8,6 +9,11 @@ import { round, session } from "../db/schema";
 // the next Season and never comes back to this one, so it is never final here.
 export const isFinalRound = (nextRoundStartsAt: Date | null, now: Date): boolean =>
   nextRoundStartsAt !== null && nextRoundStartsAt <= now;
+
+// When a Round starts: its first Session, its Qualifying (CONTEXT.md, "Final Round"). Null when its
+// Sessions do not include one. findNextRoundStart applies the same rule in its query.
+export const roundStartsAt = (sessions: readonly { kind: SessionKind; startsAt: Date }[]): Date | null =>
+  sessions.find((roundSession) => roundSession.kind === "Qualifying")?.startsAt ?? null;
 
 // When the Round after the given one starts: its Qualifying, the first Session (CONTEXT.md, "Final
 // Round"). Null for the last Round of the Season.

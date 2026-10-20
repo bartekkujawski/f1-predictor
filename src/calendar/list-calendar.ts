@@ -3,6 +3,7 @@ import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
+import { roundStartsAt } from "./round";
 import { type SessionKind, type SessionStatus, sessionStatusAt } from "./session";
 import { seasonAt } from "./season";
 
@@ -58,11 +59,9 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId
     roundRows.at(-1)!.sessions.push(row);
   }
 
-  // Every Round of the Season is listed, so the next Round's start is already loaded: its
-  // Qualifying, as in findNextRoundStart.
+  // Every Round of the Season is listed, so the next Round's Sessions are already loaded.
   const rounds: CalendarRound[] = roundRows.map(({ number, name, sessions }, index) => {
-    const nextRoundStartsAt =
-      roundRows[index + 1]?.sessions.find((next) => next.kind === "Qualifying")?.startsAt ?? null;
+    const nextRoundStartsAt = roundStartsAt(roundRows[index + 1]?.sessions ?? []);
     return {
       number,
       name,
