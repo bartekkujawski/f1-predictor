@@ -30,13 +30,13 @@ const SessionScoreView = ({ score }: { score: SessionScore }) => (
   </p>
 );
 
-const Top10View = ({ session: { top10, scoredAgainst, regularDrivers } }: { session: SessionPredictions }) => (
+const Top10View = ({ session: { status, top10, scoredAgainst, regularDrivers } }: { session: SessionPredictions }) => (
   <Card className="space-y-3">
     <h2 className="text-lg font-semibold">Top 10 of the {scoredAgainst}</h2>
-    {top10.state === "published" ? (
-      <Top10List top10={top10.order} regularDrivers={regularDrivers} />
+    {top10 ? (
+      <Top10List top10={top10} regularDrivers={regularDrivers} />
     ) : (
-      <p className="text-text-muted">{(top10.state === "cancelled" ? CANCELLED : NOT_PUBLISHED_YET)[scoredAgainst]}</p>
+      <p className="text-text-muted">{(status.state === "cancelled" ? CANCELLED : NOT_PUBLISHED_YET)[scoredAgainst]}</p>
     )}
   </Card>
 );

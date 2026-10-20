@@ -300,10 +300,11 @@ describe("getSessionPredictions", () => {
         round: { number: 1, name: "Bahrain Grand Prix" },
         kind: "Race",
         locksAt: bahrain.qualifyingStartsAt,
+        status: { state: "open" },
         visible: { state: "open", own: topTen },
         regularDrivers: expect.arrayContaining(regularDrivers),
         scoredAgainst: "Official Classification",
-        top10: { state: "not-published-yet" },
+        top10: null,
       },
     });
   });
@@ -377,18 +378,21 @@ describe("getSessionPredictions", () => {
       expect((await sessionAfterRace(db, "Race")).scoredAgainst).toBe("Official Classification");
     });
 
-    it("has no Top 10 until results are stored", async () => {
+    it("has no Top 10 until results are stored, and waits for them as locked", async () => {
       const db = await syncedDatabase();
 
-      expect(await top10Of(db, "Race")).toEqual({ state: "not-published-yet" });
-      expect(await top10Of(db, "Qualifying")).toEqual({ state: "not-published-yet" });
+      expect(await top10Of(db, "Race")).toBeNull();
+      expect(await top10Of(db, "Qualifying")).toBeNull();
+      expect((await sessionAfterRace(db, "Qualifying")).status).toEqual({ state: "locked" });
     });
 
     it("shows positions 1–10 of the Race's Official Classification", async () => {
       const db = await syncedDatabase();
       await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
 
-      expect(await top10Of(db, "Race")).toEqual({ state: "published", order: driverIds.slice(0, 10) });
+      expect(await top10Of(db, "Race")).toEqual(driverIds.slice(0, 10));
+      // Round 1 is the last Round here, so it is never final and its scores stay provisional.
+      expect((await sessionAfterRace(db, "Race")).status).toEqual({ state: "scored", provisional: true });
     });
 
     it("shows the Starting Grid for Qualifying, with an empty slot kept empty", async () => {
@@ -396,10 +400,7 @@ describe("getSessionPredictions", () => {
       const grid = [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 11)];
       await storeResults(db, { officialClassification: driverIds, startingGrid: grid });
 
-      expect(await top10Of(db, "Qualifying")).toEqual({
-        state: "published",
-        order: [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)],
-      });
+      expect(await top10Of(db, "Qualifying")).toEqual([...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)]);
     });
   });
 
@@ -513,7 +514,8 @@ describe("getSessionPredictions", () => {
 
       const session = await sessionAt(db, ROUND_1_FINAL, kind);
 
-      expect(session.top10).toEqual({ state: "cancelled" });
+      expect(session.status).toEqual({ state: "cancelled" });
+      expect(session.top10).toBeNull();
       expect(session.visible).toEqual({
         state: "locked",
         members: [
@@ -531,7 +533,7 @@ describe("getSessionPredictions", () => {
 
         const session = await sessionAt(db, JUST_BEFORE_ROUND_1_FINAL, kind);
 
-        expect(session.top10).toEqual({ state: "not-published-yet" });
+        expect(session.status).toEqual({ state: "locked" });
         expect(session.visible).toEqual({
           state: "locked",
           members: [
@@ -549,7 +551,7 @@ describe("getSessionPredictions", () => {
 
       const session = await sessionAt(db, ROUND_1_FINAL, "Race");
 
-      expect(session.top10.state).toBe("published");
+      expect(session.status).toEqual({ state: "scored", provisional: false });
       expect(session.visible.state === "locked" && session.visible.members[0].score).toEqual({
         points: (10 * 25 + 50) * 3,
         exactHits: 10,
@@ -559,7 +561,7 @@ describe("getSessionPredictions", () => {
     it("never cancels a Session of the last Round of the Season, which has no next Round", async () => {
       const db = await syncedDatabase();
 
-      expect((await sessionAt(db, "2026-12-31T23:59:59Z", "Race")).top10).toEqual({ state: "not-published-yet" });
+      expect((await sessionAt(db, "2026-12-31T23:59:59Z", "Race")).status).toEqual({ state: "locked" });
     });
   });
 });

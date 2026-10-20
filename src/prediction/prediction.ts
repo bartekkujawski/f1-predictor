@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { findNextRoundStart, isFinalRound } from "../calendar/round";
+import { findNextRoundStart } from "../calendar/round";
 import { seasonAt } from "../calendar/season";
 import {
   orderScoredAgainst,
@@ -44,28 +44,23 @@ export type VisiblePredictions =
   | { state: "locked"; members: MemberPrediction[] };
 
 // A Member of the viewer's League with their Prediction, or null if they did not predict, and its
-// Session Score: computed here on every read, never stored (ADR-0007). The score is null until the
-// Top 10 is published; a Member without a Prediction then scores 0. In a Cancelled Session everyone
-// scores 0.
+// Session Score: computed here on every read, never stored (ADR-0007). The score is null while the
+// Session is locked waiting for its Top 10; once scored, a Member without a Prediction scores 0. In a
+// Cancelled Session everyone scores 0.
 export type MemberPrediction = { nickname: string; prediction: Prediction | null; score: SessionScore | null };
-
-// Positions 1–10 of what the Session is scored against, as far as they are known. A null position
-// is an empty grid slot. Not published yet until the results come, and cancelled once its Round is
-// final without them, since then they never will.
-export type Top10State =
-  | { state: "published"; order: DriverOrder }
-  | { state: "not-published-yet" }
-  | { state: "cancelled" };
 
 // One Session as a Member views it, with the Predictions they are allowed to see.
 export type SessionPredictions = {
   round: { number: number; name: string };
   kind: SessionKind;
   locksAt: Date;
+  status: SessionStatus;
   visible: VisiblePredictions;
   regularDrivers: RegularDriver[];
   scoredAgainst: ScoredAgainst;
-  top10: Top10State;
+  // Positions 1–10 of what the Session is scored against, or null while it is not published. A null
+  // position is an empty grid slot.
+  top10: DriverOrder | null;
 };
 
 export type SessionPredictionsOutcome =
@@ -219,25 +214,20 @@ export const getSessionPredictions = async (
     return { status: "no-such-session" };
   }
 
-  const order = orderScoredAgainst(kind, found);
-  // Only a Session still waiting for its Top 10 can turn out to be cancelled.
-  const top10: Top10State = order
-    ? { state: "published", order: order.slice(0, TOP_10_SIZE) }
-    : isFinalRound(await findNextRoundStart(db, season, roundNumber), now)
-      ? { state: "cancelled" }
-      : { state: "not-published-yet" };
+  const status = sessionStatusAt({ kind, ...found }, await findNextRoundStart(db, season, roundNumber), now);
+  const top10 = orderScoredAgainst(kind, found)?.slice(0, TOP_10_SIZE) ?? null;
   // A Cancelled Session has no Top 10, which the scoring module scores as 0 for everyone.
-  const scoredTop10 = top10.state === "published" ? toTop10(top10.order) : null;
+  const scoredTop10 = top10 ? toTop10(top10) : null;
 
   // Scores only come with every Member's Predictions, so before the Lock there are none to see.
   const visible: VisiblePredictions =
-    sessionStateAt(found.locksAt, now) === "open"
+    status.state === "open"
       ? { state: "open", own: await findOwnPrediction(db, found.id, viewerId) }
       : {
           state: "locked",
           members: (await listMemberPredictions(db, found.id, viewerId)).map((member) => ({
             ...member,
-            score: top10.state === "not-published-yet" ? null : scoreSession(kind, scoredTop10, member.prediction),
+            score: status.state === "locked" ? null : scoreSession(kind, scoredTop10, member.prediction),
           })),
         };
 
@@ -247,6 +237,7 @@ export const getSessionPredictions = async (
       round: { number: roundNumber, name: found.roundName },
       kind,
       locksAt: found.locksAt,
+      status,
       visible,
       regularDrivers: await listRegularDrivers(db, season),
       scoredAgainst: scoredAgainst(kind),
