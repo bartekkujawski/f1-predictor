@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSignedInPlayer } from "../../../../auth/signed-in-player";
 import { isSessionKind, type ScoredAgainst } from "../../../../calendar/session";
 import { LocalTime } from "../../../../calendar/local-time";
+import { SessionStatusBadge } from "../../../../calendar/session-status-badge";
 import { getCurrentSessionPredictions } from "../../../../prediction/current-prediction";
 import { PicksList } from "../../../../prediction/picks-list";
 import type { SessionPredictions } from "../../../../prediction/prediction";
@@ -67,7 +68,10 @@ export default async function SessionPage({ params }: PageProps<"/rounds/[number
       <Link href={`/rounds/${session.round.number}`} className="text-sm text-text-muted">
         Round {session.round.number}: {session.round.name}
       </Link>
-      <h1 className="text-2xl font-bold">{session.kind}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold">{session.kind}</h1>
+        <SessionStatusBadge kind={session.kind} status={session.status} />
+      </div>
       {session.visible.state === "open" ? (
         <>
           <p className="text-text-muted">
