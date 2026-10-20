@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSignedInPlayer } from "../../../auth/signed-in-player";
 import { LocalTime } from "../../../calendar/local-time";
+import { SessionStatusBadge } from "../../../calendar/session-status-badge";
 import { getCurrentPlayerPredictions } from "../../../prediction/current-prediction";
 import type { RoundSession } from "../../../prediction/prediction";
 import { PicksList } from "../../../prediction/picks-list";
@@ -46,13 +47,16 @@ export default async function RoundPage({ params }: PageProps<"/rounds/[number]"
       </h1>
       {round.sessions.map((session) => (
         <Card key={session.kind} className="space-y-3">
-          <h2 className="text-lg font-semibold">
-            <Link href={`/rounds/${round.number}/${session.kind}`}>{session.kind}</Link>
-          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold">
+              <Link href={`/rounds/${round.number}/${session.kind}`}>{session.kind}</Link>
+            </h2>
+            <SessionStatusBadge kind={session.kind} status={session.status} />
+          </div>
           <p className="text-sm text-text-muted">
-            {session.state === "open" ? "Locks" : "Locked"} <LocalTime iso={session.locksAt.toISOString()} />
+            {session.status.state === "open" ? "Locks" : "Locked"} <LocalTime iso={session.locksAt.toISOString()} />
           </p>
-          {session.state === "locked" ? (
+          {session.status.state !== "open" ? (
             <LockedSessionView session={session} regularDrivers={round.regularDrivers} />
           ) : round.regularDrivers.length === 0 ? (
             // Regular Drivers come from the Season's first Race (ADR-0002).

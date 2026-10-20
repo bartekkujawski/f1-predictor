@@ -79,6 +79,20 @@ const syncedDatabase = async (schedule: ScheduledRound[] = [bahrain]) => {
 
 const at = (iso: string) => fixedClock(new Date(iso));
 
+const AFTER_RACE = "2026-03-08T18:00:00Z";
+
+// Stores Round 1's results the way the App Admin's refresh does.
+const storeResults = (db: Database, raceResults: RaceResults) =>
+  refresh(
+    {
+      db,
+      resultsSource: createFakeResultsSource({ 2026: { schedule: [bahrain], regularDrivers, raceResults: { 1: raceResults } } }),
+      clock: at(AFTER_RACE),
+      appAdminEmails: [appAdmin.email],
+    },
+    appAdmin.id,
+  );
+
 // Round 1 as Ania sees it at the given moment.
 const aniasRound = async (db: Database, iso: string): Promise<RoundPredictions> => {
   const outcome = await getPlayerPredictions({ db, clock: at(iso) }, ania.id, 1);
@@ -220,8 +234,8 @@ describe("getPlayerPredictions", () => {
       number: 1,
       name: "Bahrain Grand Prix",
       sessions: [
-        { kind: "Qualifying", locksAt: bahrain.qualifyingStartsAt, state: "open", prediction: null },
-        { kind: "Race", locksAt: bahrain.qualifyingStartsAt, state: "open", prediction: null },
+        { kind: "Qualifying", locksAt: bahrain.qualifyingStartsAt, status: { state: "open" }, prediction: null },
+        { kind: "Race", locksAt: bahrain.qualifyingStartsAt, status: { state: "open" }, prediction: null },
       ],
       regularDrivers: expect.arrayContaining(regularDrivers),
     });
@@ -234,10 +248,30 @@ describe("getPlayerPredictions", () => {
 
     const round = await aniasRound(db, "2026-03-07T15:00:00Z");
 
-    expect(round.sessions.map(({ kind, state, prediction }) => ({ kind, state, prediction }))).toEqual([
-      { kind: "Qualifying", state: "locked", prediction: null },
-      { kind: "Race", state: "locked", prediction: topTen },
+    expect(round.sessions.map(({ kind, status, prediction }) => ({ kind, status, prediction }))).toEqual([
+      { kind: "Qualifying", status: { state: "locked" }, prediction: null },
+      { kind: "Race", status: { state: "locked" }, prediction: topTen },
     ]);
+  });
+
+  it("shows the Round's Sessions as scored, but provisional, once results are published in a Round that is not final", async () => {
+    const db = await syncedDatabase([bahrain, saudiArabia]);
+    await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
+
+    const round = await aniasRound(db, AFTER_RACE);
+
+    expect(round.sessions.map(({ status }) => status)).toEqual([
+      { state: "scored", provisional: true },
+      { state: "scored", provisional: true },
+    ]);
+  });
+
+  it("shows the Round's Sessions as cancelled once the Round is final with nothing published", async () => {
+    const db = await syncedDatabase([bahrain, saudiArabia]);
+
+    const round = await aniasRound(db, saudiArabia.qualifyingStartsAt.toISOString());
+
+    expect(round.sessions.map(({ status }) => status)).toEqual([{ state: "cancelled" }, { state: "cancelled" }]);
   });
 
   it("never shows another Player's Prediction", async () => {
@@ -266,10 +300,11 @@ describe("getSessionPredictions", () => {
         round: { number: 1, name: "Bahrain Grand Prix" },
         kind: "Race",
         locksAt: bahrain.qualifyingStartsAt,
+        status: { state: "open" },
         visible: { state: "open", own: topTen },
         regularDrivers: expect.arrayContaining(regularDrivers),
         scoredAgainst: "Official Classification",
-        top10: { state: "not-published-yet" },
+        top10: null,
       },
     });
   });
@@ -325,20 +360,6 @@ describe("getSessionPredictions", () => {
     expect(outcome).toEqual({ status: "no-such-session" });
   });
 
-  const AFTER_RACE = "2026-03-08T18:00:00Z";
-
-  // Stores Round 1's results the way the App Admin's refresh does.
-  const storeResults = (db: Database, raceResults: RaceResults) =>
-    refresh(
-      {
-        db,
-        resultsSource: createFakeResultsSource({ 2026: { schedule: [bahrain], regularDrivers, raceResults: { 1: raceResults } } }),
-        clock: at(AFTER_RACE),
-        appAdminEmails: [appAdmin.email],
-      },
-      appAdmin.id,
-    );
-
   const sessionAfterRace = async (db: Database, kind: "Qualifying" | "Race") => {
     const outcome = await getSessionPredictions({ db, clock: at(AFTER_RACE) }, ania.id, 1, kind);
     if (outcome.status !== "found") {
@@ -357,18 +378,21 @@ describe("getSessionPredictions", () => {
       expect((await sessionAfterRace(db, "Race")).scoredAgainst).toBe("Official Classification");
     });
 
-    it("has no Top 10 until results are stored", async () => {
+    it("has no Top 10 until results are stored, and waits for them as locked", async () => {
       const db = await syncedDatabase();
 
-      expect(await top10Of(db, "Race")).toEqual({ state: "not-published-yet" });
-      expect(await top10Of(db, "Qualifying")).toEqual({ state: "not-published-yet" });
+      expect(await top10Of(db, "Race")).toBeNull();
+      expect(await top10Of(db, "Qualifying")).toBeNull();
+      expect((await sessionAfterRace(db, "Qualifying")).status).toEqual({ state: "locked" });
     });
 
     it("shows positions 1–10 of the Race's Official Classification", async () => {
       const db = await syncedDatabase();
       await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
 
-      expect(await top10Of(db, "Race")).toEqual({ state: "published", order: driverIds.slice(0, 10) });
+      expect(await top10Of(db, "Race")).toEqual(driverIds.slice(0, 10));
+      // Round 1 is the last Round here, so it is never final and its scores stay provisional.
+      expect((await sessionAfterRace(db, "Race")).status).toEqual({ state: "scored", provisional: true });
     });
 
     it("shows the Starting Grid for Qualifying, with an empty slot kept empty", async () => {
@@ -376,10 +400,7 @@ describe("getSessionPredictions", () => {
       const grid = [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 11)];
       await storeResults(db, { officialClassification: driverIds, startingGrid: grid });
 
-      expect(await top10Of(db, "Qualifying")).toEqual({
-        state: "published",
-        order: [...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)],
-      });
+      expect(await top10Of(db, "Qualifying")).toEqual([...driverIds.slice(0, 6), null, ...driverIds.slice(6, 9)]);
     });
   });
 
@@ -493,7 +514,8 @@ describe("getSessionPredictions", () => {
 
       const session = await sessionAt(db, ROUND_1_FINAL, kind);
 
-      expect(session.top10).toEqual({ state: "cancelled" });
+      expect(session.status).toEqual({ state: "cancelled" });
+      expect(session.top10).toBeNull();
       expect(session.visible).toEqual({
         state: "locked",
         members: [
@@ -511,7 +533,7 @@ describe("getSessionPredictions", () => {
 
         const session = await sessionAt(db, JUST_BEFORE_ROUND_1_FINAL, kind);
 
-        expect(session.top10).toEqual({ state: "not-published-yet" });
+        expect(session.status).toEqual({ state: "locked" });
         expect(session.visible).toEqual({
           state: "locked",
           members: [
@@ -529,7 +551,7 @@ describe("getSessionPredictions", () => {
 
       const session = await sessionAt(db, ROUND_1_FINAL, "Race");
 
-      expect(session.top10.state).toBe("published");
+      expect(session.status).toEqual({ state: "scored", provisional: false });
       expect(session.visible.state === "locked" && session.visible.members[0].score).toEqual({
         points: (10 * 25 + 50) * 3,
         exactHits: 10,
@@ -539,7 +561,7 @@ describe("getSessionPredictions", () => {
     it("never cancels a Session of the last Round of the Season, which has no next Round", async () => {
       const db = await syncedDatabase();
 
-      expect((await sessionAt(db, "2026-12-31T23:59:59Z", "Race")).top10).toEqual({ state: "not-published-yet" });
+      expect((await sessionAt(db, "2026-12-31T23:59:59Z", "Race")).status).toEqual({ state: "locked" });
     });
   });
 });

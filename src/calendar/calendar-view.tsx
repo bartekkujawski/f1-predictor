@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "../ui/card";
 import type { Calendar, CalendarRound } from "./list-calendar";
 import { LocalTime } from "./local-time";
+import { SessionStatusBadge } from "./session-status-badge";
 
 const RoundView = ({ round, isNextOpen }: { round: CalendarRound; isNextOpen: boolean }) => (
   <li>
@@ -17,9 +18,12 @@ const RoundView = ({ round, isNextOpen }: { round: CalendarRound; isNextOpen: bo
       </h3>
       <ul className="mt-2 space-y-1 text-sm text-text-muted">
         {round.sessions.map((session) => (
-          <li key={session.kind}>
-            {session.kind}: {session.state}, Lock{" "}
-            <LocalTime iso={session.locksAt.toISOString()} />
+          <li key={session.kind} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-text">{session.kind}</span>
+            <SessionStatusBadge kind={session.kind} status={session.status} />
+            <span>
+              Lock <LocalTime iso={session.locksAt.toISOString()} />
+            </span>
           </li>
         ))}
       </ul>

@@ -18,11 +18,12 @@ From the inside out:
 
 ## Code layout
 
-- **UI primitives** (`src/ui/`): button, card, menu, navigation. Presentation only: they know
+- **UI primitives** (`src/ui/`): badge, button, card, menu, navigation. Presentation only: they know
   nothing of the domain and take plain props. They may use the framework (`next/link`, and
   `usePathname` to mark the current link), since the framework is not the domain.
 - **Domain components** live in their domain module next to its use-cases (`src/calendar/calendar-view.tsx`,
-  `src/prediction/prediction-form.tsx`).
+  `src/calendar/session-status-badge.tsx`, `src/prediction/prediction-form.tsx`). They word what a
+  use-case decided; they never decide it, e.g. the badge renders the Session status from the outcome.
 - **The app frame** (`src/app/layout.tsx`, `src/app/app-header.tsx`): the main navigation (bottom bar
   on narrow screens, header links on wide ones), the Player's menu, and the 640 px content column.
 
@@ -59,7 +60,8 @@ Look here before writing a rule; a second copy is a review finding.
 
 | Rule | Home |
 | ---- | ---- |
-| Lock, Session state, which order a Session is scored against (ADR-0008) | `src/calendar/session.ts` |
+| Lock (whether a Session accepts Predictions), which order a Session is scored against (ADR-0008) | `src/calendar/session.ts` |
+| Session status (open, locked, scored and whether provisionally, cancelled), shown on every page | `sessionStatusAt` in `src/calendar/session.ts` |
 | Final Round, start of the next Round | `src/calendar/round.ts` |
 | The Season a moment belongs to | `src/calendar/season.ts` |
 | App Admin role | `src/app-admin/app-admin.ts` |
@@ -89,7 +91,7 @@ Tests go through a module's public interface and assert on outcomes, not on SQL 
   from the live API rather than writing them by hand: hand-written fixtures once missed the
   practice-only drivers in the Season driver list. The suite makes no network calls.
 - **Pages:** `renderToStaticMarkup`, with `vi.mock` on `signed-in-player` and the `current-*`
-  modules (`src/app/page.test.tsx`). The root layout is tested the same way
+  modules (`src/app/page.test.tsx`). Assert on the text a reader sees, not on classes. The root layout is tested the same way
   (`src/app/layout.test.tsx`), with `next/font` and `usePathname` mocked; it also covers which
   navigation link is marked current.
 - **Client forms and the Better Auth wiring** hold no rules, so they have no tests; typecheck and

@@ -3,14 +3,15 @@ import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
-import { type SessionKind, type SessionState, sessionStateAt } from "./session";
+import { roundStartsAt } from "./round";
+import { type SessionKind, type SessionStatus, sessionStatusAt, type StoredSession, storedSessionColumns } from "./session";
 import { seasonAt } from "./season";
 
 export type CalendarSession = {
   kind: SessionKind;
   startsAt: Date;
   locksAt: Date;
-  state: SessionState;
+  status: SessionStatus;
 };
 
 export type CalendarRound = { number: number; name: string; sessions: CalendarSession[] };
@@ -26,7 +27,7 @@ export type CalendarOutcome = { status: "not-a-member" } | { status: "listed"; c
 
 export type CalendarDependencies = { db: Database; clock: Clock };
 
-// The current Season's Rounds and Sessions, each Session open or locked according to the Clock.
+// The current Season's Rounds and Sessions, each Session with its status at the Clock's moment.
 // Only for Members: a Player who has not joined the League is asked to join first.
 export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId: string): Promise<CalendarOutcome> => {
   if (!(await findMemberLeague({ db }, playerId))) {
@@ -36,28 +37,37 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId
   const season = seasonAt(now);
 
   const rows = await db
-    .select({
-      number: round.number,
-      name: round.name,
-      kind: session.kind,
-      startsAt: session.startsAt,
-      locksAt: session.locksAt,
-    })
+    .select({ number: round.number, name: round.name, stored: storedSessionColumns })
     .from(round)
     .innerJoin(session, eq(session.roundId, round.id))
     .where(eq(round.season, season))
     .orderBy(asc(round.number), asc(session.startsAt));
 
-  const rounds: CalendarRound[] = [];
-  for (const { number, name, kind, startsAt, locksAt } of rows) {
-    if (rounds.at(-1)?.number !== number) {
-      rounds.push({ number, name, sessions: [] });
+  const roundRows: { number: number; name: string; sessions: StoredSession[] }[] = [];
+  for (const { number, name, stored } of rows) {
+    if (roundRows.at(-1)?.number !== number) {
+      roundRows.push({ number, name, sessions: [] });
     }
-    rounds.at(-1)!.sessions.push({ kind, startsAt, locksAt, state: sessionStateAt(locksAt, now) });
+    roundRows.at(-1)!.sessions.push(stored);
   }
 
+  // Every Round of the Season is listed, so the next Round's Sessions are already loaded.
+  const rounds: CalendarRound[] = roundRows.map(({ number, name, sessions }, index) => {
+    const nextRoundStartsAt = roundStartsAt(roundRows[index + 1]?.sessions ?? []);
+    return {
+      number,
+      name,
+      sessions: sessions.map((stored) => ({
+        kind: stored.kind,
+        startsAt: stored.startsAt,
+        locksAt: stored.locksAt,
+        status: sessionStatusAt(stored, nextRoundStartsAt, now),
+      })),
+    };
+  });
+
   const nextOpen = rounds.find((calendarRound) =>
-    calendarRound.sessions.some((calendarSession) => calendarSession.state === "open"),
+    calendarRound.sessions.some((calendarSession) => calendarSession.status.state === "open"),
   );
 
   return { status: "listed", calendar: { season, rounds, nextOpenRound: nextOpen?.number ?? null } };

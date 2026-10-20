@@ -1,8 +1,17 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { findNextRoundStart, isFinalRound } from "../calendar/round";
+import { findNextRoundStart } from "../calendar/round";
 import { seasonAt } from "../calendar/season";
-import { orderScoredAgainst, type ScoredAgainst, scoredAgainst, type SessionKind, type SessionState, sessionStateAt } from "../calendar/session";
+import {
+  orderScoredAgainst,
+  type ScoredAgainst,
+  scoredAgainst,
+  type SessionKind,
+  type SessionStatus,
+  lockStateAt,
+  sessionStatusAt,
+  storedSessionColumns,
+} from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { member, player, prediction, regularDriver, round, session } from "../db/schema";
@@ -16,7 +25,7 @@ export type PredictionDependencies = { db: Database; clock: Clock };
 export type RoundSession = {
   kind: SessionKind;
   locksAt: Date;
-  state: SessionState;
+  status: SessionStatus;
   // Null when the Player has no Prediction for this Session yet.
   prediction: Prediction | null;
 };
@@ -36,28 +45,23 @@ export type VisiblePredictions =
   | { state: "locked"; members: MemberPrediction[] };
 
 // A Member of the viewer's League with their Prediction, or null if they did not predict, and its
-// Session Score: computed here on every read, never stored (ADR-0007). The score is null until the
-// Top 10 is published; a Member without a Prediction then scores 0. In a Cancelled Session everyone
-// scores 0.
+// Session Score: computed here on every read, never stored (ADR-0007). The score is null while the
+// Session is locked waiting for its Top 10; once scored, a Member without a Prediction scores 0. In a
+// Cancelled Session everyone scores 0.
 export type MemberPrediction = { nickname: string; prediction: Prediction | null; score: SessionScore | null };
-
-// Positions 1–10 of what the Session is scored against, as far as they are known. A null position
-// is an empty grid slot. Not published yet until the results come, and cancelled once its Round is
-// final without them, since then they never will.
-export type Top10State =
-  | { state: "published"; order: DriverOrder }
-  | { state: "not-published-yet" }
-  | { state: "cancelled" };
 
 // One Session as a Member views it, with the Predictions they are allowed to see.
 export type SessionPredictions = {
   round: { number: number; name: string };
   kind: SessionKind;
   locksAt: Date;
+  status: SessionStatus;
   visible: VisiblePredictions;
   regularDrivers: RegularDriver[];
   scoredAgainst: ScoredAgainst;
-  top10: Top10State;
+  // Positions 1–10 of what the Session is scored against, or null while it is not published. A null
+  // position is an empty grid slot.
+  top10: DriverOrder | null;
 };
 
 export type SessionPredictionsOutcome =
@@ -116,12 +120,7 @@ export const getPlayerPredictions = async (
   const season = seasonAt(now);
 
   const rows = await db
-    .select({
-      name: round.name,
-      kind: session.kind,
-      locksAt: session.locksAt,
-      picks: prediction.picks,
-    })
+    .select({ name: round.name, stored: storedSessionColumns, picks: prediction.picks })
     .from(round)
     .innerJoin(session, eq(session.roundId, round.id))
     // Only this Player's Prediction is joined, so nobody else's is ever loaded.
@@ -133,16 +132,17 @@ export const getPlayerPredictions = async (
   }
 
   const drivers = await listRegularDrivers(db, season);
+  const nextRoundStartsAt = await findNextRoundStart(db, season, roundNumber);
 
   return {
     status: "found",
     round: {
       number: roundNumber,
       name: rows[0].name,
-      sessions: rows.map(({ kind, locksAt, picks }) => ({
-        kind,
-        locksAt,
-        state: sessionStateAt(locksAt, now),
+      sessions: rows.map(({ stored, picks }) => ({
+        kind: stored.kind,
+        locksAt: stored.locksAt,
+        status: sessionStatusAt(stored, nextRoundStartsAt, now),
         prediction: picks,
       })),
       regularDrivers: drivers,
@@ -194,13 +194,7 @@ export const getSessionPredictions = async (
   const season = seasonAt(now);
 
   const [found] = await db
-    .select({
-      id: session.id,
-      roundName: round.name,
-      locksAt: session.locksAt,
-      officialClassification: session.officialClassification,
-      startingGrid: session.startingGrid,
-    })
+    .select({ id: session.id, roundName: round.name, stored: storedSessionColumns })
     .from(session)
     .innerJoin(round, eq(session.roundId, round.id))
     .where(and(eq(round.season, season), eq(round.number, roundNumber), eq(session.kind, kind)));
@@ -208,25 +202,20 @@ export const getSessionPredictions = async (
     return { status: "no-such-session" };
   }
 
-  const order = orderScoredAgainst(kind, found);
-  // Only a Session still waiting for its Top 10 can turn out to be cancelled.
-  const top10: Top10State = order
-    ? { state: "published", order: order.slice(0, TOP_10_SIZE) }
-    : isFinalRound(await findNextRoundStart(db, season, roundNumber), now)
-      ? { state: "cancelled" }
-      : { state: "not-published-yet" };
+  const status = sessionStatusAt(found.stored, await findNextRoundStart(db, season, roundNumber), now);
+  const top10 = orderScoredAgainst(kind, found.stored)?.slice(0, TOP_10_SIZE) ?? null;
   // A Cancelled Session has no Top 10, which the scoring module scores as 0 for everyone.
-  const scoredTop10 = top10.state === "published" ? toTop10(top10.order) : null;
+  const scoredTop10 = top10 ? toTop10(top10) : null;
 
   // Scores only come with every Member's Predictions, so before the Lock there are none to see.
   const visible: VisiblePredictions =
-    sessionStateAt(found.locksAt, now) === "open"
+    status.state === "open"
       ? { state: "open", own: await findOwnPrediction(db, found.id, viewerId) }
       : {
           state: "locked",
           members: (await listMemberPredictions(db, found.id, viewerId)).map((member) => ({
             ...member,
-            score: top10.state === "not-published-yet" ? null : scoreSession(kind, scoredTop10, member.prediction),
+            score: status.state === "locked" ? null : scoreSession(kind, scoredTop10, member.prediction),
           })),
         };
 
@@ -235,7 +224,8 @@ export const getSessionPredictions = async (
     session: {
       round: { number: roundNumber, name: found.roundName },
       kind,
-      locksAt: found.locksAt,
+      locksAt: found.stored.locksAt,
+      status,
       visible,
       regularDrivers: await listRegularDrivers(db, season),
       scoredAgainst: scoredAgainst(kind),
@@ -270,7 +260,7 @@ export const savePrediction = async (
   // the Lock is accepted even if the upsert lands just after it. That is accepted on purpose: the
   // Member was in time, and nobody can see other Predictions within those milliseconds. Closing
   // the gap would need the Lock inside the upsert itself (INSERT ... SELECT, in raw SQL).
-  if (sessionStateAt(found.locksAt, now) === "locked") {
+  if (lockStateAt(found.locksAt, now) === "locked") {
     return { status: "locked" };
   }
   const invalid = await checkPicks(db, season, input.picks);

@@ -6,7 +6,7 @@ import { createTestDatabase } from "../db/test-database";
 import { createLeague, joinLeague } from "../league/league";
 import { refresh } from "../refresh/refresh";
 import { createFakeResultsSource } from "../results-source/fake-results-source";
-import type { ScheduledRound } from "../results-source/results-source";
+import type { RaceResults, ScheduledRound } from "../results-source/results-source";
 import { type Calendar, listCalendar } from "./list-calendar";
 
 const bahrain: ScheduledRound = {
@@ -62,6 +62,24 @@ const memberCalendar = async (db: Database, iso: string): Promise<Calendar> => {
   return outcome.calendar;
 };
 
+const statusesOfRound1 = (calendar: Calendar) => calendar.rounds[0].sessions.map((session) => session.status);
+
+// Stores Round 1's results the way the App Admin's refresh does, right after its Race.
+const storeRound1Results = (db: Database, raceResults: RaceResults) =>
+  refresh(
+    {
+      db,
+      resultsSource: createFakeResultsSource({
+        2026: { schedule: [jeddah, bahrain], regularDrivers: [], raceResults: { 1: raceResults } },
+      }),
+      clock: at("2026-03-08T18:00:00Z"),
+      appAdminEmails: [appAdmin.email],
+    },
+    appAdmin.id,
+  );
+
+const raceOrder = ["norris", "piastri", "max_verstappen", "russell", "leclerc", "hamilton", "antonelli", "albon", "sainz", "alonso"];
+
 describe("listCalendar", () => {
   it("asks a Player who is not a Member to join first, and lists nothing", async () => {
     const db = await syncedDatabase();
@@ -82,8 +100,8 @@ describe("listCalendar", () => {
       { number: 2, name: "Saudi Arabian Grand Prix" },
     ]);
     expect(calendar.rounds[0].sessions).toEqual([
-      { kind: "Qualifying", startsAt: bahrain.qualifyingStartsAt, locksAt: bahrain.qualifyingStartsAt, state: "open" },
-      { kind: "Race", startsAt: bahrain.raceStartsAt, locksAt: bahrain.qualifyingStartsAt, state: "open" },
+      { kind: "Qualifying", startsAt: bahrain.qualifyingStartsAt, locksAt: bahrain.qualifyingStartsAt, status: { state: "open" } },
+      { kind: "Race", startsAt: bahrain.raceStartsAt, locksAt: bahrain.qualifyingStartsAt, status: { state: "open" } },
     ]);
   });
 
@@ -92,7 +110,7 @@ describe("listCalendar", () => {
 
     const calendar = await memberCalendar(db, "2026-03-07T14:59:59Z");
 
-    expect(calendar.rounds[0].sessions.map((session) => session.state)).toEqual(["open", "open"]);
+    expect(statusesOfRound1(calendar)).toEqual([{ state: "open" }, { state: "open" }]);
   });
 
   it("shows both Sessions as locked from the start of Qualifying", async () => {
@@ -100,7 +118,7 @@ describe("listCalendar", () => {
 
     const calendar = await memberCalendar(db, "2026-03-07T15:00:00Z");
 
-    expect(calendar.rounds[0].sessions.map((session) => session.state)).toEqual(["locked", "locked"]);
+    expect(statusesOfRound1(calendar)).toEqual([{ state: "locked" }, { state: "locked" }]);
   });
 
   it("points at the first Round that still has an open Session as the next open Round", async () => {
@@ -124,5 +142,65 @@ describe("listCalendar", () => {
     const calendar = await memberCalendar(db, "2027-01-10T00:00:00Z");
 
     expect(calendar).toEqual({ season: 2027, rounds: [], nextOpenRound: null });
+  });
+
+  describe("Session status", () => {
+    // Round 1 becomes final when Round 2's Qualifying starts.
+    const ROUND_1_FINAL = jeddah.qualifyingStartsAt.toISOString();
+    const JUST_BEFORE_ROUND_1_FINAL = "2026-03-14T16:59:59Z";
+
+    it("shows a Session waiting for results after its Race as locked", async () => {
+      const db = await syncedDatabase();
+
+      const calendar = await memberCalendar(db, "2026-03-08T18:00:00Z");
+
+      expect(statusesOfRound1(calendar)).toEqual([{ state: "locked" }, { state: "locked" }]);
+    });
+
+    it("shows a Session as scored, but provisional, once its results are published in a Round that is not final", async () => {
+      const db = await syncedDatabase();
+      await storeRound1Results(db, { officialClassification: raceOrder, startingGrid: raceOrder });
+
+      const calendar = await memberCalendar(db, JUST_BEFORE_ROUND_1_FINAL);
+
+      expect(statusesOfRound1(calendar)).toEqual([
+        { state: "scored", provisional: true },
+        { state: "scored", provisional: true },
+      ]);
+    });
+
+    it("shows a Session as scored, no longer provisional, once its Round is final", async () => {
+      const db = await syncedDatabase();
+      await storeRound1Results(db, { officialClassification: raceOrder, startingGrid: raceOrder });
+
+      const calendar = await memberCalendar(db, ROUND_1_FINAL);
+
+      expect(statusesOfRound1(calendar)).toEqual([
+        { state: "scored", provisional: false },
+        { state: "scored", provisional: false },
+      ]);
+    });
+
+    it("shows a Session with nothing published as cancelled once its Round is final", async () => {
+      const db = await syncedDatabase();
+
+      const calendar = await memberCalendar(db, ROUND_1_FINAL);
+
+      expect(statusesOfRound1(calendar)).toEqual([{ state: "cancelled" }, { state: "cancelled" }]);
+    });
+
+    it("keeps Qualifying locked after it has run, until the Race results bring the Starting Grid", async () => {
+      const db = await syncedDatabase();
+      const afterQualifying = "2026-03-07T17:00:00Z";
+
+      expect(statusesOfRound1(await memberCalendar(db, afterQualifying))[0]).toEqual({ state: "locked" });
+
+      await storeRound1Results(db, { officialClassification: raceOrder, startingGrid: raceOrder });
+
+      expect(statusesOfRound1(await memberCalendar(db, JUST_BEFORE_ROUND_1_FINAL))[0]).toEqual({
+        state: "scored",
+        provisional: true,
+      });
+    });
   });
 });
