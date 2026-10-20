@@ -50,9 +50,9 @@ export default async function RoundPage({ params }: PageProps<"/rounds/[number]"
             <Link href={`/rounds/${round.number}/${session.kind}`}>{session.kind}</Link>
           </h2>
           <p className="text-sm text-text-muted">
-            {session.state === "open" ? "Locks" : "Locked"} <LocalTime iso={session.locksAt.toISOString()} />
+            {session.status.state === "open" ? "Locks" : "Locked"} <LocalTime iso={session.locksAt.toISOString()} />
           </p>
-          {session.state === "locked" ? (
+          {session.status.state !== "open" ? (
             <LockedSessionView session={session} regularDrivers={round.regularDrivers} />
           ) : round.regularDrivers.length === 0 ? (
             // Regular Drivers come from the Season's first Race (ADR-0002).

@@ -79,6 +79,20 @@ const syncedDatabase = async (schedule: ScheduledRound[] = [bahrain]) => {
 
 const at = (iso: string) => fixedClock(new Date(iso));
 
+const AFTER_RACE = "2026-03-08T18:00:00Z";
+
+// Stores Round 1's results the way the App Admin's refresh does.
+const storeResults = (db: Database, raceResults: RaceResults) =>
+  refresh(
+    {
+      db,
+      resultsSource: createFakeResultsSource({ 2026: { schedule: [bahrain], regularDrivers, raceResults: { 1: raceResults } } }),
+      clock: at(AFTER_RACE),
+      appAdminEmails: [appAdmin.email],
+    },
+    appAdmin.id,
+  );
+
 // Round 1 as Ania sees it at the given moment.
 const aniasRound = async (db: Database, iso: string): Promise<RoundPredictions> => {
   const outcome = await getPlayerPredictions({ db, clock: at(iso) }, ania.id, 1);
@@ -220,8 +234,8 @@ describe("getPlayerPredictions", () => {
       number: 1,
       name: "Bahrain Grand Prix",
       sessions: [
-        { kind: "Qualifying", locksAt: bahrain.qualifyingStartsAt, state: "open", prediction: null },
-        { kind: "Race", locksAt: bahrain.qualifyingStartsAt, state: "open", prediction: null },
+        { kind: "Qualifying", locksAt: bahrain.qualifyingStartsAt, status: { state: "open" }, prediction: null },
+        { kind: "Race", locksAt: bahrain.qualifyingStartsAt, status: { state: "open" }, prediction: null },
       ],
       regularDrivers: expect.arrayContaining(regularDrivers),
     });
@@ -234,10 +248,30 @@ describe("getPlayerPredictions", () => {
 
     const round = await aniasRound(db, "2026-03-07T15:00:00Z");
 
-    expect(round.sessions.map(({ kind, state, prediction }) => ({ kind, state, prediction }))).toEqual([
-      { kind: "Qualifying", state: "locked", prediction: null },
-      { kind: "Race", state: "locked", prediction: topTen },
+    expect(round.sessions.map(({ kind, status, prediction }) => ({ kind, status, prediction }))).toEqual([
+      { kind: "Qualifying", status: { state: "locked" }, prediction: null },
+      { kind: "Race", status: { state: "locked" }, prediction: topTen },
     ]);
+  });
+
+  it("shows the Round's Sessions as scored, but provisional, once results are published in a Round that is not final", async () => {
+    const db = await syncedDatabase([bahrain, saudiArabia]);
+    await storeResults(db, { officialClassification: driverIds, startingGrid: driverIds });
+
+    const round = await aniasRound(db, AFTER_RACE);
+
+    expect(round.sessions.map(({ status }) => status)).toEqual([
+      { state: "scored", provisional: true },
+      { state: "scored", provisional: true },
+    ]);
+  });
+
+  it("shows the Round's Sessions as cancelled once the Round is final with nothing published", async () => {
+    const db = await syncedDatabase([bahrain, saudiArabia]);
+
+    const round = await aniasRound(db, saudiArabia.qualifyingStartsAt.toISOString());
+
+    expect(round.sessions.map(({ status }) => status)).toEqual([{ state: "cancelled" }, { state: "cancelled" }]);
   });
 
   it("never shows another Player's Prediction", async () => {
@@ -324,20 +358,6 @@ describe("getSessionPredictions", () => {
 
     expect(outcome).toEqual({ status: "no-such-session" });
   });
-
-  const AFTER_RACE = "2026-03-08T18:00:00Z";
-
-  // Stores Round 1's results the way the App Admin's refresh does.
-  const storeResults = (db: Database, raceResults: RaceResults) =>
-    refresh(
-      {
-        db,
-        resultsSource: createFakeResultsSource({ 2026: { schedule: [bahrain], regularDrivers, raceResults: { 1: raceResults } } }),
-        clock: at(AFTER_RACE),
-        appAdminEmails: [appAdmin.email],
-      },
-      appAdmin.id,
-    );
 
   const sessionAfterRace = async (db: Database, kind: "Qualifying" | "Race") => {
     const outcome = await getSessionPredictions({ db, clock: at(AFTER_RACE) }, ania.id, 1, kind);

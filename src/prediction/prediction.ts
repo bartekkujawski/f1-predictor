@@ -2,7 +2,15 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { findNextRoundStart, isFinalRound } from "../calendar/round";
 import { seasonAt } from "../calendar/season";
-import { orderScoredAgainst, type ScoredAgainst, scoredAgainst, type SessionKind, type SessionState, sessionStateAt } from "../calendar/session";
+import {
+  orderScoredAgainst,
+  type ScoredAgainst,
+  scoredAgainst,
+  type SessionKind,
+  type SessionStatus,
+  sessionStateAt,
+  sessionStatusAt,
+} from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { member, player, prediction, regularDriver, round, session } from "../db/schema";
@@ -16,7 +24,7 @@ export type PredictionDependencies = { db: Database; clock: Clock };
 export type RoundSession = {
   kind: SessionKind;
   locksAt: Date;
-  state: SessionState;
+  status: SessionStatus;
   // Null when the Player has no Prediction for this Session yet.
   prediction: Prediction | null;
 };
@@ -120,6 +128,8 @@ export const getPlayerPredictions = async (
       name: round.name,
       kind: session.kind,
       locksAt: session.locksAt,
+      officialClassification: session.officialClassification,
+      startingGrid: session.startingGrid,
       picks: prediction.picks,
     })
     .from(round)
@@ -133,16 +143,17 @@ export const getPlayerPredictions = async (
   }
 
   const drivers = await listRegularDrivers(db, season);
+  const nextRoundStartsAt = await findNextRoundStart(db, season, roundNumber);
 
   return {
     status: "found",
     round: {
       number: roundNumber,
       name: rows[0].name,
-      sessions: rows.map(({ kind, locksAt, picks }) => ({
+      sessions: rows.map(({ kind, locksAt, officialClassification, startingGrid, picks }) => ({
         kind,
         locksAt,
-        state: sessionStateAt(locksAt, now),
+        status: sessionStatusAt({ kind, locksAt, officialClassification, startingGrid }, nextRoundStartsAt, now),
         prediction: picks,
       })),
       regularDrivers: drivers,
