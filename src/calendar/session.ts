@@ -39,21 +39,34 @@ export type SessionStatus =
   | { state: "scored"; provisional: boolean }
   | { state: "cancelled" };
 
+// A Session as stored: its schedule and the orders published for it. Selected with
+// storedSessionColumns, so every query loads what the Session status is decided from.
+export type StoredSession = {
+  kind: SessionKind;
+  startsAt: Date;
+  locksAt: Date;
+  officialClassification: DriverOrder | null;
+  startingGrid: DriverOrder | null;
+};
+
+export const storedSessionColumns = {
+  kind: session.kind,
+  startsAt: session.startsAt,
+  locksAt: session.locksAt,
+  officialClassification: session.officialClassification,
+  startingGrid: session.startingGrid,
+};
+
 export const sessionStatusAt = (
-  session: {
-    kind: SessionKind;
-    locksAt: Date;
-    officialClassification: DriverOrder | null;
-    startingGrid: DriverOrder | null;
-  },
+  stored: StoredSession,
   nextRoundStartsAt: Date | null,
   now: Date,
 ): SessionStatus => {
-  if (lockStateAt(session.locksAt, now) === "open") {
+  if (lockStateAt(stored.locksAt, now) === "open") {
     return { state: "open" };
   }
   const isFinal = isFinalRound(nextRoundStartsAt, now);
-  if (orderScoredAgainst(session.kind, session)) {
+  if (orderScoredAgainst(stored.kind, stored)) {
     return { state: "scored", provisional: !isFinal };
   }
   return isFinal ? { state: "cancelled" } : { state: "locked" };

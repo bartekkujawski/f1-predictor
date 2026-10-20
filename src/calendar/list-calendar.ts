@@ -4,7 +4,7 @@ import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
 import { roundStartsAt } from "./round";
-import { type SessionKind, type SessionStatus, sessionStatusAt } from "./session";
+import { type SessionKind, type SessionStatus, sessionStatusAt, type StoredSession, storedSessionColumns } from "./session";
 import { seasonAt } from "./season";
 
 export type CalendarSession = {
@@ -37,26 +37,18 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId
   const season = seasonAt(now);
 
   const rows = await db
-    .select({
-      number: round.number,
-      name: round.name,
-      kind: session.kind,
-      startsAt: session.startsAt,
-      locksAt: session.locksAt,
-      officialClassification: session.officialClassification,
-      startingGrid: session.startingGrid,
-    })
+    .select({ number: round.number, name: round.name, stored: storedSessionColumns })
     .from(round)
     .innerJoin(session, eq(session.roundId, round.id))
     .where(eq(round.season, season))
     .orderBy(asc(round.number), asc(session.startsAt));
 
-  const roundRows: { number: number; name: string; sessions: (typeof rows)[number][] }[] = [];
-  for (const row of rows) {
-    if (roundRows.at(-1)?.number !== row.number) {
-      roundRows.push({ number: row.number, name: row.name, sessions: [] });
+  const roundRows: { number: number; name: string; sessions: StoredSession[] }[] = [];
+  for (const { number, name, stored } of rows) {
+    if (roundRows.at(-1)?.number !== number) {
+      roundRows.push({ number, name, sessions: [] });
     }
-    roundRows.at(-1)!.sessions.push(row);
+    roundRows.at(-1)!.sessions.push(stored);
   }
 
   // Every Round of the Season is listed, so the next Round's Sessions are already loaded.
@@ -65,11 +57,11 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId
     return {
       number,
       name,
-      sessions: sessions.map(({ kind, startsAt, locksAt, officialClassification, startingGrid }) => ({
-        kind,
-        startsAt,
-        locksAt,
-        status: sessionStatusAt({ kind, locksAt, officialClassification, startingGrid }, nextRoundStartsAt, now),
+      sessions: sessions.map((stored) => ({
+        kind: stored.kind,
+        startsAt: stored.startsAt,
+        locksAt: stored.locksAt,
+        status: sessionStatusAt(stored, nextRoundStartsAt, now),
       })),
     };
   });

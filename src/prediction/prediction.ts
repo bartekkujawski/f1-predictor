@@ -10,6 +10,7 @@ import {
   type SessionStatus,
   lockStateAt,
   sessionStatusAt,
+  storedSessionColumns,
 } from "../calendar/session";
 import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
@@ -119,14 +120,7 @@ export const getPlayerPredictions = async (
   const season = seasonAt(now);
 
   const rows = await db
-    .select({
-      name: round.name,
-      kind: session.kind,
-      locksAt: session.locksAt,
-      officialClassification: session.officialClassification,
-      startingGrid: session.startingGrid,
-      picks: prediction.picks,
-    })
+    .select({ name: round.name, stored: storedSessionColumns, picks: prediction.picks })
     .from(round)
     .innerJoin(session, eq(session.roundId, round.id))
     // Only this Player's Prediction is joined, so nobody else's is ever loaded.
@@ -145,10 +139,10 @@ export const getPlayerPredictions = async (
     round: {
       number: roundNumber,
       name: rows[0].name,
-      sessions: rows.map(({ kind, locksAt, officialClassification, startingGrid, picks }) => ({
-        kind,
-        locksAt,
-        status: sessionStatusAt({ kind, locksAt, officialClassification, startingGrid }, nextRoundStartsAt, now),
+      sessions: rows.map(({ stored, picks }) => ({
+        kind: stored.kind,
+        locksAt: stored.locksAt,
+        status: sessionStatusAt(stored, nextRoundStartsAt, now),
         prediction: picks,
       })),
       regularDrivers: drivers,
@@ -200,13 +194,7 @@ export const getSessionPredictions = async (
   const season = seasonAt(now);
 
   const [found] = await db
-    .select({
-      id: session.id,
-      roundName: round.name,
-      locksAt: session.locksAt,
-      officialClassification: session.officialClassification,
-      startingGrid: session.startingGrid,
-    })
+    .select({ id: session.id, roundName: round.name, stored: storedSessionColumns })
     .from(session)
     .innerJoin(round, eq(session.roundId, round.id))
     .where(and(eq(round.season, season), eq(round.number, roundNumber), eq(session.kind, kind)));
@@ -214,8 +202,8 @@ export const getSessionPredictions = async (
     return { status: "no-such-session" };
   }
 
-  const status = sessionStatusAt({ kind, ...found }, await findNextRoundStart(db, season, roundNumber), now);
-  const top10 = orderScoredAgainst(kind, found)?.slice(0, TOP_10_SIZE) ?? null;
+  const status = sessionStatusAt(found.stored, await findNextRoundStart(db, season, roundNumber), now);
+  const top10 = orderScoredAgainst(kind, found.stored)?.slice(0, TOP_10_SIZE) ?? null;
   // A Cancelled Session has no Top 10, which the scoring module scores as 0 for everyone.
   const scoredTop10 = top10 ? toTop10(top10) : null;
 
@@ -236,7 +224,7 @@ export const getSessionPredictions = async (
     session: {
       round: { number: roundNumber, name: found.roundName },
       kind,
-      locksAt: found.locksAt,
+      locksAt: found.stored.locksAt,
       status,
       visible,
       regularDrivers: await listRegularDrivers(db, season),
