@@ -8,7 +8,7 @@ import {
   scoredAgainst,
   type SessionKind,
   type SessionStatus,
-  sessionStateAt,
+  lockStateAt,
   sessionStatusAt,
 } from "../calendar/session";
 import type { Clock } from "../clock/clock";
@@ -272,7 +272,7 @@ export const savePrediction = async (
   // the Lock is accepted even if the upsert lands just after it. That is accepted on purpose: the
   // Member was in time, and nobody can see other Predictions within those milliseconds. Closing
   // the gap would need the Lock inside the upsert itself (INSERT ... SELECT, in raw SQL).
-  if (sessionStateAt(found.locksAt, now) === "locked") {
+  if (lockStateAt(found.locksAt, now) === "locked") {
     return { status: "locked" };
   }
   const invalid = await checkPicks(db, season, input.picks);

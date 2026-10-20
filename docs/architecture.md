@@ -60,7 +60,7 @@ Look here before writing a rule; a second copy is a review finding.
 
 | Rule | Home |
 | ---- | ---- |
-| Lock, Session state, which order a Session is scored against (ADR-0008) | `src/calendar/session.ts` |
+| Lock (whether a Session accepts Predictions), which order a Session is scored against (ADR-0008) | `src/calendar/session.ts` |
 | Session status (open, locked, scored and whether provisionally, cancelled), shown on every page | `sessionStatusAt` in `src/calendar/session.ts` |
 | Final Round, start of the next Round | `src/calendar/round.ts` |
 | The Season a moment belongs to | `src/calendar/season.ts` |

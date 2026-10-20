@@ -10,10 +10,11 @@ export type SessionKind = (typeof session.kind.enumValues)[number];
 export const isSessionKind = (value: string): value is SessionKind =>
   (session.kind.enumValues as readonly string[]).includes(value);
 
-export type SessionState = "open" | "locked";
+// Whether a Session still accepts Predictions. Its Session status, for display, says more.
+export type LockState = "open" | "locked";
 
 // Locked at the Lock itself, not one moment later: a save at the Lock is already refused.
-export const sessionStateAt = (locksAt: Date, now: Date): SessionState => (now < locksAt ? "open" : "locked");
+export const lockStateAt = (locksAt: Date, now: Date): LockState => (now < locksAt ? "open" : "locked");
 
 // What a Session's Picks are compared with. Qualifying uses the Starting Grid, so grid penalties
 // count (ADR-0008); every other Session uses its own Official Classification.
@@ -48,7 +49,7 @@ export const sessionStatusAt = (
   nextRoundStartsAt: Date | null,
   now: Date,
 ): SessionStatus => {
-  if (sessionStateAt(session.locksAt, now) === "open") {
+  if (lockStateAt(session.locksAt, now) === "open") {
     return { state: "open" };
   }
   const isFinal = isFinalRound(nextRoundStartsAt, now);
