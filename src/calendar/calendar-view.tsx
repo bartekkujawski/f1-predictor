@@ -18,7 +18,7 @@ const RoundView = ({ round, isNextOpen }: { round: CalendarRound; isNextOpen: bo
       <ul className="mt-2 space-y-1 text-sm text-text-muted">
         {round.sessions.map((session) => (
           <li key={session.kind}>
-            {session.kind}: {session.state}, Lock{" "}
+            {session.kind}: {session.status.state}, Lock{" "}
             <LocalTime iso={session.locksAt.toISOString()} />
           </li>
         ))}

@@ -3,14 +3,14 @@ import type { Clock } from "../clock/clock";
 import type { Database } from "../db/database";
 import { round, session } from "../db/schema";
 import { findMemberLeague } from "../league/league";
-import { type SessionKind, type SessionState, sessionStateAt } from "./session";
+import { type SessionKind, type SessionStatus, sessionStatusAt } from "./session";
 import { seasonAt } from "./season";
 
 export type CalendarSession = {
   kind: SessionKind;
   startsAt: Date;
   locksAt: Date;
-  state: SessionState;
+  status: SessionStatus;
 };
 
 export type CalendarRound = { number: number; name: string; sessions: CalendarSession[] };
@@ -26,7 +26,7 @@ export type CalendarOutcome = { status: "not-a-member" } | { status: "listed"; c
 
 export type CalendarDependencies = { db: Database; clock: Clock };
 
-// The current Season's Rounds and Sessions, each Session open or locked according to the Clock.
+// The current Season's Rounds and Sessions, each Session with its status at the Clock's moment.
 // Only for Members: a Player who has not joined the League is asked to join first.
 export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId: string): Promise<CalendarOutcome> => {
   if (!(await findMemberLeague({ db }, playerId))) {
@@ -42,22 +42,41 @@ export const listCalendar = async ({ db, clock }: CalendarDependencies, playerId
       kind: session.kind,
       startsAt: session.startsAt,
       locksAt: session.locksAt,
+      officialClassification: session.officialClassification,
+      startingGrid: session.startingGrid,
     })
     .from(round)
     .innerJoin(session, eq(session.roundId, round.id))
     .where(eq(round.season, season))
     .orderBy(asc(round.number), asc(session.startsAt));
 
-  const rounds: CalendarRound[] = [];
-  for (const { number, name, kind, startsAt, locksAt } of rows) {
-    if (rounds.at(-1)?.number !== number) {
-      rounds.push({ number, name, sessions: [] });
+  const roundRows: { number: number; name: string; sessions: (typeof rows)[number][] }[] = [];
+  for (const row of rows) {
+    if (roundRows.at(-1)?.number !== row.number) {
+      roundRows.push({ number: row.number, name: row.name, sessions: [] });
     }
-    rounds.at(-1)!.sessions.push({ kind, startsAt, locksAt, state: sessionStateAt(locksAt, now) });
+    roundRows.at(-1)!.sessions.push(row);
   }
 
+  // Every Round of the Season is listed, so the next Round's start is already loaded: its
+  // Qualifying, as in findNextRoundStart.
+  const rounds: CalendarRound[] = roundRows.map(({ number, name, sessions }, index) => {
+    const nextRoundStartsAt =
+      roundRows[index + 1]?.sessions.find((next) => next.kind === "Qualifying")?.startsAt ?? null;
+    return {
+      number,
+      name,
+      sessions: sessions.map(({ kind, startsAt, locksAt, officialClassification, startingGrid }) => ({
+        kind,
+        startsAt,
+        locksAt,
+        status: sessionStatusAt({ kind, locksAt, officialClassification, startingGrid }, nextRoundStartsAt, now),
+      })),
+    };
+  });
+
   const nextOpen = rounds.find((calendarRound) =>
-    calendarRound.sessions.some((calendarSession) => calendarSession.state === "open"),
+    calendarRound.sessions.some((calendarSession) => calendarSession.status.state === "open"),
   );
 
   return { status: "listed", calendar: { season, rounds, nextOpenRound: nextOpen?.number ?? null } };

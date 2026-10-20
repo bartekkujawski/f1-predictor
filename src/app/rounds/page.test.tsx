@@ -22,7 +22,7 @@ const session = (kind: "Qualifying" | "Race", startsAt: string, locksAt: string,
   kind,
   startsAt: new Date(startsAt),
   locksAt: new Date(locksAt),
-  state,
+  status: { state },
 });
 
 const qualifyingStart = "2026-03-07T15:00:00.000Z";

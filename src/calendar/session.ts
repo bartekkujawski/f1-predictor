@@ -1,5 +1,6 @@
 import { session } from "../db/schema";
 import type { DriverOrder } from "../results-source/results-source";
+import { isFinalRound } from "./round";
 
 // The kinds of Session the calendar holds. The scoring module's own SessionKind also accepts the
 // Sprint, which the calendar gains in Part 2.
@@ -26,3 +27,33 @@ export const orderScoredAgainst = (
   kind: SessionKind,
   orders: { officialClassification: DriverOrder | null; startingGrid: DriverOrder | null },
 ): DriverOrder | null => (scoredAgainst(kind) === "Starting Grid" ? orders.startingGrid : orders.officialClassification);
+
+// Where a Session stands, for display, the same on every page: open until the Lock, then locked
+// until what it is scored against is published. Then it is scored, provisionally until its Round
+// is a Final Round, since a refresh may still change the results. A Session that reaches the Final
+// Round with nothing published is a Cancelled Session.
+export type SessionStatus =
+  | { state: "open" }
+  | { state: "locked" }
+  | { state: "scored"; provisional: boolean }
+  | { state: "cancelled" };
+
+export const sessionStatusAt = (
+  session: {
+    kind: SessionKind;
+    locksAt: Date;
+    officialClassification: DriverOrder | null;
+    startingGrid: DriverOrder | null;
+  },
+  nextRoundStartsAt: Date | null,
+  now: Date,
+): SessionStatus => {
+  if (sessionStateAt(session.locksAt, now) === "open") {
+    return { state: "open" };
+  }
+  const isFinal = isFinalRound(nextRoundStartsAt, now);
+  if (orderScoredAgainst(session.kind, session)) {
+    return { state: "scored", provisional: !isFinal };
+  }
+  return isFinal ? { state: "cancelled" } : { state: "locked" };
+};
