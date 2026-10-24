@@ -31,9 +31,9 @@ const subscribeToSeconds = (onTick: () => void) => {
 
 // An Open Session's badge, counting down to its Lock. The server does not know when the page will
 // reach the reader, so it renders "Open" alone and the browser adds the time left after hydration.
-// At the Lock the badge turns into `locked` without a reload. Display only: the save use-case
+// At the Lock it turns into `lockedBadge` without a reload. Display only: the save use-case
 // still refuses a late save.
-export const LockCountdown = ({ locksAt, locked }: { locksAt: string; locked: ReactNode }) => {
+export const LockCountdown = ({ locksAt, lockedBadge }: { locksAt: string; lockedBadge: ReactNode }) => {
   const secondsLeft = useSyncExternalStore(
     subscribeToSeconds,
     () => secondsLeftAt(new Date(locksAt), new Date()),
@@ -43,7 +43,7 @@ export const LockCountdown = ({ locksAt, locked }: { locksAt: string; locked: Re
     return <Badge tone="accent">Open</Badge>;
   }
   if (secondsLeft === 0) {
-    return locked;
+    return lockedBadge;
   }
   return (
     <Badge tone="accent">Open · locks in {formatTimeLeft(secondsLeft)}</Badge>

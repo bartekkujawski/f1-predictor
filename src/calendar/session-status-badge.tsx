@@ -21,7 +21,7 @@ export const SessionStatusBadge = ({
 }) => {
   switch (status.state) {
     case "open":
-      return <LockCountdown locksAt={locksAt.toISOString()} locked={<LockedBadge kind={kind} />} />;
+      return <LockCountdown locksAt={locksAt.toISOString()} lockedBadge={<LockedBadge kind={kind} />} />;
     case "locked":
       return <LockedBadge kind={kind} />;
     case "scored":
