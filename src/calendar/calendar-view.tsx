@@ -20,7 +20,7 @@ const RoundView = ({ round, isNextOpen }: { round: CalendarRound; isNextOpen: bo
         {round.sessions.map((session) => (
           <li key={session.kind} className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-text">{session.kind}</span>
-            <SessionStatusBadge kind={session.kind} status={session.status} />
+            <SessionStatusBadge session={session} />
             <span>
               Lock <LocalTime iso={session.locksAt.toISOString()} />
             </span>

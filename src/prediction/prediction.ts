@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { lockStateAt } from "../calendar/lock";
 import { findNextRoundStart } from "../calendar/round";
 import { seasonAt } from "../calendar/season";
 import {
@@ -8,7 +9,6 @@ import {
   scoredAgainst,
   type SessionKind,
   type SessionStatus,
-  lockStateAt,
   sessionStatusAt,
   storedSessionColumns,
 } from "../calendar/session";

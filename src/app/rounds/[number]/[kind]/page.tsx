@@ -70,7 +70,7 @@ export default async function SessionPage({ params }: PageProps<"/rounds/[number
       </Link>
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">{session.kind}</h1>
-        <SessionStatusBadge kind={session.kind} status={session.status} />
+        <SessionStatusBadge session={session} />
       </div>
       {session.visible.state === "open" ? (
         <>
