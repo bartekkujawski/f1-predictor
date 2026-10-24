@@ -20,9 +20,7 @@ const formatTimeLeft = (seconds: number) => {
 
 // Whole seconds until the Lock, rounded up, so it reads 0 only once the Session is locked.
 const secondsLeftAt = (locksAt: Date, now: Date) =>
-  lockStateAt(locksAt, now) === "locked"
-    ? 0
-    : Math.ceil((locksAt.getTime() - now.getTime()) / 1000);
+  lockStateAt(locksAt, now) === "locked" ? 0 : Math.ceil((locksAt.getTime() - now.getTime()) / 1000);
 
 const subscribeToSeconds = (onTick: () => void) => {
   const interval = setInterval(onTick, 1000);
@@ -39,13 +37,8 @@ export const LockCountdown = ({ locksAt, lockedBadge }: { locksAt: string; locke
     () => secondsLeftAt(new Date(locksAt), new Date()),
     () => null,
   );
-  if (secondsLeft === null) {
-    return <Badge tone="accent">Open</Badge>;
-  }
   if (secondsLeft === 0) {
     return lockedBadge;
   }
-  return (
-    <Badge tone="accent">Open · locks in {formatTimeLeft(secondsLeft)}</Badge>
-  );
+  return <Badge tone="accent">Open{secondsLeft !== null && ` · locks in ${formatTimeLeft(secondsLeft)}`}</Badge>;
 };
