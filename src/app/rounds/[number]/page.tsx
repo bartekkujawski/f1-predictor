@@ -51,7 +51,7 @@ export default async function RoundPage({ params }: PageProps<"/rounds/[number]"
             <h2 className="text-lg font-semibold">
               <Link href={`/rounds/${round.number}/${session.kind}`}>{session.kind}</Link>
             </h2>
-            <SessionStatusBadge kind={session.kind} status={session.status} locksAt={session.locksAt} />
+            <SessionStatusBadge session={session} />
           </div>
           <p className="text-sm text-text-muted">
             {session.status.state === "open" ? "Locks" : "Locked"} <LocalTime iso={session.locksAt.toISOString()} />

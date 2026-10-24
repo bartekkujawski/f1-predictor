@@ -14,7 +14,11 @@ const LockedBadge = ({ kind }: { kind: SessionKind }) => (
 
 // A Session's status, the same on every page. The use-cases decide the status; this only words it.
 // An Open Session counts down to its Lock, then shows as locked: nothing is published at the Lock yet.
-export const SessionStatusBadge = ({ kind, status, locksAt }: { kind: SessionKind; status: SessionStatus; locksAt: Date }) => {
+export const SessionStatusBadge = ({
+  session: { kind, status, locksAt },
+}: {
+  session: { kind: SessionKind; status: SessionStatus; locksAt: Date };
+}) => {
   switch (status.state) {
     case "open":
       return <LockCountdown locksAt={locksAt.toISOString()} locked={<LockedBadge kind={kind} />} />;
