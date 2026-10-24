@@ -22,8 +22,10 @@ From the inside out:
   nothing of the domain and take plain props. They may use the framework (`next/link`, and
   `usePathname` to mark the current link), since the framework is not the domain.
 - **Domain components** live in their domain module next to its use-cases (`src/calendar/calendar-view.tsx`,
-  `src/calendar/session-status-badge.tsx`, `src/prediction/prediction-form.tsx`). They word what a
-  use-case decided; they never decide it, e.g. the badge renders the Session status from the outcome.
+  `src/calendar/session-status-badge.tsx`, `src/calendar/lock-countdown.tsx`, `src/prediction/prediction-form.tsx`).
+  They word what a use-case decided; they never decide it, e.g. the badge renders the Session status from the outcome.
+  One exception, for display only: the Lock countdown turns an Open badge into Locked at the Lock without a reload.
+  It applies the shared rule (`lockStateAt`) to the browser's time, and the save use-case still refuses a late save.
 - **The app frame** (`src/app/layout.tsx`, `src/app/app-header.tsx`): the main navigation (bottom bar
   on narrow screens, header links on wide ones), the Player's menu, and the 640 px content column.
 
